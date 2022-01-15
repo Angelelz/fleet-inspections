@@ -1,0 +1,25 @@
+{% extends "layout.html" %}
+
+{% block title %}
+    Quote
+{% endblock %}
+
+{% block main %}
+    <h2>Stock price</h2>
+        <div style="text-align:center; max-width:750px; margin: auto;">
+                <table class="table table-hover table-sm">
+                    <thead>
+                        <tr>
+                            <th>Company Name</th>
+                            <th>Price</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <tr>
+                            <td>{{ name }}</td>
+                            <td>{{ price }}</td>
+                        </tr>
+                    </tbody>
+                </table>
+        </div>
+{% endblock %}
