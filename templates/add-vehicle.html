@@ -1,0 +1,37 @@
+{% extends "layout.html" %}
+
+{% block head %}
+    <script src="https://cdn.rawgit.com/serratus/quaggaJS/0420d5e0/dist/quagga.min.js"></script>
+    <script src="./static/scripts.js"></script>
+{% endblock %}
+
+{% block title %}
+    Add vehicle
+{% endblock %}
+
+{% block main %}
+    <h4>Add a vehicle</h4>
+    <form action="/add-vehicle" method="post">
+        <div class="mb-3">
+            <input required autocomplete="off" autofocus class="form-control mx-auto w-auto" id="year" name="year" placeholder="Year" type="number">
+        </div>
+        <div class="mb-3">
+            <input required autocomplete="off" autofocus class="form-control mx-auto w-auto" id="make" name="make" placeholder="Make" type="text">
+        </div>
+        <div class="mb-3">
+            <input required autocomplete="off" autofocus class="form-control mx-auto w-auto" id="model" name="model" placeholder="Model" type="text">
+        </div>
+        <div class="mb-3">
+            <input required autocomplete="off" autofocus class="form-control mx-auto w-auto" id="number" name="number" placeholder="Vehicle ID" type="text">
+        </div>
+        <div class="mb-3">
+            <input autocomplete="off" autofocus class="form-control mx-auto w-auto" id="tag" name="tag" placeholder="Vehicle tag" type="text">
+        </div>
+        <div class="mb-3">
+            <input required autocomplete="off" autofocus class="form-control mx-auto w-auto" id="vin" name="vin" placeholder="VIN" type="text">
+        </div>
+        <button class="btn btn-primary" type="submit">Add</button>
+        <div id="scanner-container" style="position: relative; width: 1280px; height: 860px; margin-left: auto; margin-right: auto; display: none;"></div>
+        <input type="button" id="btn" value="Start/Stop the scanner" />
+    </form>
+{% endblock %}

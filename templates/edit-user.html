@@ -1,0 +1,55 @@
+{% extends "layout.html" %}
+
+{% block title %}
+    Edit user
+{% endblock %}
+
+{% block main %}
+    {% if not user %}
+    <h4>User to edit</h4>
+    <form action="/edit-user" method="get">
+        <div class="mb-3"></div>
+            <select class="form-select" name="user" style="width: auto; margin-right:auto; margin-left:auto; margin-bottom:1em">
+                <option disabled selected>User</option>
+                {% for u in users %}
+                    {% if u["role"] != "owner" %}
+                    <option value="{{ u["username"] }}">{{ u["username"] }}</option>
+                    {% endif %}
+                {% endfor %}
+            </select>
+        </div>
+        <button class="btn btn-primary" type="submit">Edit user</button>
+    </form>
+    {% else %}
+    <h4>Edit User</h4>
+    <form action="/edit-user" method="post">
+        <div class="mb-3">
+            <input required value="{{ u["username"] }}" autocomplete="off" autofocus class="form-control mx-auto w-auto" id="username" name="username" placeholder="Username" type="text">
+        </div>
+        <div class="mb-3">
+            <input required value="{{ u["email"] }}" autocomplete="off" class="form-control mx-auto w-auto" id="email" name="email" placeholder="Email" type="text">
+        </div>
+        <div class="mb-3">
+            <input required autocomplete="off" class="form-control mx-auto w-auto" id="password" name="password" placeholder="Password" type="password">
+        </div>
+        <div class="mb-3">
+            <input required autocomplete="off" class="form-control mx-auto w-auto" id="confirmation" name="confirmation" placeholder="Confirmation" type="password">
+        </div>
+        <div class="mb-3">
+            <select required class="form-select mx-auto w-auto" name="role" id="role">
+                <option disabled value="">Select role</option>
+                {% if u["role"] == "admin" %}
+                <option selected value="admin">Admin</option>
+                <option value="user">User</option>
+                {% elif u["role"] == "owner" %}
+                <option value="owner">Owner</option>
+                {% else %}
+                <option value="admin">Admin</option>
+                <option selected value="user">User</option>
+                {% endif %}
+            </select>
+        </div>
+        <button name="u" value="{{ u["u_id"] }}" class="btn btn-primary" type="submit">Edit</button>
+    </form>
+    {% endif %}
+{% endblock %}

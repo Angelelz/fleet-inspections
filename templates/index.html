@@ -1,65 +1,87 @@
 {% extends "layout.html" %}
 
 {% block title %}
-    This is CS50 Finance
+    Manage inspections and/or maintenance of your fleet
 {% endblock %}
 
 {% block main %}
-    <h2>{{ user[0]["username"] }}'s Portfolio</h2>
+    {% if not session["user_id"] %}
+        <h2>Register for an Admin account on the top right</h2>
+    {% else %}
+    
         <div style="text-align:center; max-width:1100px; margin: auto;">
+            <h2>Users</h2>
                 <table class="table table-hover table-sm">
-                    {% if number == 0 %}
+                    {% if users == [] %}
                     <thead>
                         <tr>
-                            <th>You currently don't own any stock</th>
+                            <th>Text for a non-admin</th>
                         </tr>
                     </thead>
                     {% else %}
                     <thead>
                         <tr>
-                            <th>Stock Name</th>
-                            <th>Quantity</th>
-                            <th>Current Value Per stock</th>
-                            <th>Total Current Value</th>
-                            <th></th>
+                            <th>User</th>
+                            <th>Email</th>
+                            <th>Role</th>
                             <th></th>
                         </tr>
                     </thead>
                     <tbody>
-                        {% for i in range(0,number) %}
+                        {% for i in range(0,users | len) %}
                         <tr>
-                            <td>{{ stocks[i]["stock"] }}</td>
-                            <td>{{ stocks[i]["quantity"] }}</td>
-                            <td>{{ prices[i] | usd }}</td>
-                            <td>{{ (prices[i] * stocks[i]["quantity"]) | usd }}</td>
-                            <td><form action="/buy" method="get">
-                                <button name="stock" class="btn btn-primary" type="submit" value="{{ stocks[i]["stock"] }}">Buy more</button>
-                            </form></td>
-                            <td><form action="/sell" method="get">
-                                <button name="stock" class="btn btn-primary" type="submit" value="{{ stocks[i]["stock"] }}">Sell</button>
+                            <td>{{ users[i]["username"] }}</td>
+                            <td>{{ users[i]["email"] }}</td>
+                            <td>{{ users[i]["role"] }}</td>
+                            <td><form action="/edit-user" method="get">
+                                <button name="user" class="btn btn-primary" type="submit" value="{{ users[i]["username"] }}">Edit</button>
                             </form></td>
                         </tr>
                         {% endfor %}
                     </tbody>
                     {% endif %}
                 </table>
+                <h2>Vehicles</h2>
                 <table class="table table-hover table-sm">
+                    {% if vehicles == [] %}
                     <thead>
                         <tr>
-                            <th>Cash in account</th>
-                            {% if number != 0 %}
-                            <th>Cash plus Holdings</th>
-                            {% endif %}
+                            <th>No vehicles</th>
+                        </tr>
+                    </thead>
+                    {% else %}
+                    <thead>
+                        <tr>
+                            <th>Year</th>
+                            <th>Make</th>
+                            <th>Model</th>
+                            <th>Id</th>
+                            <th>Tag</th>
+                            <th>VIN</th>
+                            <th></th>
+                            <th></th>
                         </tr>
                     </thead>
                     <tbody>
+                        {% for i in range(0,vehicles | len) %}
                         <tr>
-                            <td>{{ user[0]["cash"] | usd }}</td>
-                            {% if number != 0 %}
-                            <td>{{ value | usd }}</td>
-                            {% endif %}
+                            <td>{{ vehicles[i]["year"] }}</td>
+                            <td>{{ vehicles[i]["make"] }}</td>
+                            <td>{{ vehicles[i]["model"] }}</td>
+                            <td>{{ vehicles[i]["number"] }}</td>
+                            <td>{{ vehicles[i]["tag"] }}</td>
+                            <td>{{ vehicles[i]["vin"] }}</td>
+                            <td><form action="/edit-vehicle" method="get">
+                                <button name="vehicle" class="btn btn-primary" type="submit" value="{{ vehicles[i]["number"] }}">Edit</button>
+                            </form></td>
+                            <td><form action="/inspection" method="get">
+                                <button name="vehicle" class="btn btn-primary" type="submit" value="{{ vehicles[i]["number"] }}">New Inspection</button>
+                            </form></td>
                         </tr>
+                        {% endfor %}
                     </tbody>
+                    {% endif %}
                 </table>
         </div>
+    {% endif %}
 {% endblock %}

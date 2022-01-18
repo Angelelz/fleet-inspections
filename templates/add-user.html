@@ -1,0 +1,31 @@
+{% extends "layout.html" %}
+
+{% block title %}
+    Add user
+{% endblock %}
+
+{% block main %}
+<h4>Add new users to your company</h4>
+    <form action="/add-user" method="post">
+        <div class="mb-3">
+            <input required autocomplete="off" class="form-control mx-auto w-auto" id="username" name="username" placeholder="Username" type="text">
+        </div>
+        <div class="mb-3">
+            <input required autocomplete="off" class="form-control mx-auto w-auto" id="email" name="email" placeholder="Email" type="email">
+        </div>
+        <div class="mb-3">
+            <input required autocomplete="off" class="form-control mx-auto w-auto" id="password" name="password" placeholder="Password" type="password">
+        </div>
+        <div class="mb-3">
+            <input required autocomplete="off" class="form-control mx-auto w-auto" id="confirmation" name="confirmation" placeholder="Re-enter Password" type="password">
+        </div>
+        <div class="mb-3">
+            <select required class="form-select mx-auto w-auto" name="role" id="role">
+                <option disabled selected value="">Select role</option>
+                <option value="admin">Admin</option>
+                <option value="user">User</option>
+            </select>
+        </div>
+        <button class="btn btn-primary" type="submit">Add user</button>
+    </form>
+{% endblock %}

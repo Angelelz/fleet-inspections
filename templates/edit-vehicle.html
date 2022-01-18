@@ -1,0 +1,52 @@
+{% extends "layout.html" %}
+
+{% block head %}
+    <script src="https://cdn.rawgit.com/serratus/quaggaJS/0420d5e0/dist/quagga.min.js"></script>
+    <script src="./static/scripts.js"></script>
+{% endblock %}
+
+{% block title %}
+    Edit vehicle
+{% endblock %}
+
+{% block main %}
+    {% if not vehicle %}
+    <h4>Vehicle to edit</h4>
+    <form action="/edit-vehicle" method="get">
+        <div class="mb-3"></div>
+            <select class="form-select" name="vehicle" style="width: auto; margin-right:auto; margin-left:auto; margin-bottom:1em">
+                <option disabled selected>Vehicle</option>
+                {% for v in vehicles %}
+                    <option value="{{ v["number"] }}">Vehicle {{ v["number"] }}</option>
+                {% endfor %}
+            </select>
+        </div>
+        <button class="btn btn-primary" type="submit">Edit vehicle</button>
+    </form>
+    {% else %}
+    <h4>Edit a Vehicle</h4>
+    <form action="/edit-vehicle" method="post">
+        <div class="mb-3">
+            <input required value="{{ v["year"] }}" autocomplete="off" autofocus class="form-control mx-auto w-auto" id="year" name="year" placeholder="Year" type="number">
+        </div>
+        <div class="mb-3">
+            <input required value="{{ v["make"] }}" autocomplete="off" class="form-control mx-auto w-auto" id="make" name="make" placeholder="Make" type="text">
+        </div>
+        <div class="mb-3">
+            <input required value="{{ v["model"] }}" autocomplete="off" class="form-control mx-auto w-auto" id="model" name="model" placeholder="Model" type="text">
+        </div>
+        <div class="mb-3">
+            <input required value="{{ v["number"] }}" autocomplete="off" class="form-control mx-auto w-auto" id="number" name="number" placeholder="Vehicle id" type="text">
+        </div>
+        <div class="mb-3">
+            <input value="{{ v["tag"] }}" autocomplete="off" class="form-control mx-auto w-auto" id="tag" name="tag" placeholder="Vehicle Tag" type="text">
+        </div>
+        <div class="mb-3">
+            <input disabled value="{{ v["vin"] }}" autocomplete="off" class="form-control mx-auto w-auto" placeholder="VIN" type="text">
+        </div>
+        <button name="v" value="{{ vehicle }}" class="btn btn-primary" type="submit">Edit</button>
+        <div id="scanner-container" style="position: relative; width: 1280px; height: 860px; margin-left: auto; margin-right: auto; display: none;"></div>
+        <input type="button" id="btn" value="Start/Stop the scanner" />
+    </form>
+    {% endif %}
+{% endblock %}

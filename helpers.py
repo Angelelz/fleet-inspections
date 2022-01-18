@@ -34,31 +34,37 @@ def login_required(f):
         return f(*args, **kwargs)
     return decorated_function
 
+def permissions_required(f):
+    """
+    Decorate routes to require permissions "owner" or "admin".
 
-def lookup(symbol):
-    """Look up quote for symbol."""
-
-    # Contact API
-    try:
-        api_key = os.environ.get("API_KEY")
-        url = f"https://cloud.iexapis.com/stable/stock/{urllib.parse.quote_plus(symbol)}/quote?token={api_key}"
-        response = requests.get(url)
-        response.raise_for_status()
-    except requests.RequestException:
-        return None
-
-    # Parse response
-    try:
-        quote = response.json()
-        return {
-            "name": quote["companyName"],
-            "price": float(quote["latestPrice"]),
-            "symbol": quote["symbol"]
-        }
-    except (KeyError, TypeError, ValueError):
-        return None
-
+    https://flask.palletsprojects.com/en/1.1.x/patterns/viewdecorators/
+    """
+    @wraps(f)
+    def decorated_function(*args, **kwargs):
+        if session.get("user_id") is None or session.get("role") is None or session.get("role") not in ["owner", "admin"]:
+            return redirect("/")
+        return f(*args, **kwargs)
+    return decorated_function
 
 def usd(value):
     """Format value as USD."""
     return f"${value:,.2f}"
+
+def check_password(password):
+    '''Check if password follows requirements'''
+    if password:
+        return False
+    else:
+        return True
+
+def as_dict(rows):
+    return list(map(dict,rows))
+
+def check_inputs(obj):
+    for key in obj.keys():
+        if  key == "tag":
+            continue
+        if not obj.get(key) or obj.get(key) == "":
+            return [True, key]
+    return [False, ""]

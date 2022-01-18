@@ -1,13 +1,15 @@
+import dbm
 import os
 import datetime
 
-from cs50 import SQL
+import sqlite3
 from flask import Flask, flash, redirect, render_template, request, session
 from flask_session import Session
 from tempfile import mkdtemp
 from werkzeug.security import check_password_hash, generate_password_hash
 
-from helpers import apology, login_required, lookup, usd
+from helpers import apology, login_required, usd, check_password, as_dict, permissions_required, check_inputs
+from large_tables import ins, c1
 
 # Configure application
 app = Flask(__name__)
@@ -17,18 +19,33 @@ app.config["TEMPLATES_AUTO_RELOAD"] = True
 
 # Custom filter
 app.jinja_env.filters["usd"] = usd
+app.jinja_env.filters["len"] = len
 
 # Configure session to use filesystem (instead of signed cookies)
 app.config["SESSION_PERMANENT"] = False
 app.config["SESSION_TYPE"] = "filesystem"
 Session(app)
 
-# Configure CS50 Library to use SQLite database
-db = SQL("sqlite:///finance.db")
-
-# Make sure API key is set
-if not os.environ.get("API_KEY"):
-    raise RuntimeError("API_KEY not set")
+# Database Name
+db_path = "./fleets.db"
+db = sqlite3.connect(db_path)
+db.execute('''CREATE TABLE IF NOT EXISTS companys
+               (id INTEGER PRIMARY KEY, name TEXT UNIQUE NOT NULL,
+               show_name TEXT, owner TEXT NOT NULL)''')
+db.execute('''CREATE TABLE IF NOT EXISTS users
+               (u_id INTEGER PRIMARY KEY, c_id INTEGER NOT NULL,
+               username TEXT NOT NULL, email TEXT NOT NULL,
+               hash TEXT NOT NULL, role TEXT NOT NULL, FOREIGN KEY (c_id)
+               REFERENCES companys (id) ON DELETE CASCADE ON UPDATE NO ACTION)''')
+db.execute('''CREATE TABLE IF NOT EXISTS vehicles
+               (v_id INTEGER PRIMARY KEY, c_id INTEGER NOT NULL,
+               make TEXT NOT NULL, model TEXT NOT NULL,
+               year TEXT NOT NULL, number TEXT NOT NULL, vin TEXT UNIQUE NOT NULL,
+               tag TEXT, FOREIGN KEY (c_id) REFERENCES companys (id) ON DELETE CASCADE
+               ON UPDATE NO ACTION)''')
+db.execute(ins)
+db.commit()
+db.close()
 
 
 @app.after_request
@@ -40,92 +57,63 @@ def after_request(response):
     return response
 
 # Handle requests to the root
-
-
 @app.route("/")
-@login_required
 def index():
     """Show portfolio of stocks"""
-    if not session["user_id"]:
-        return redirect("/login")
+    if session.get("user_id") == None or not session["user_id"]:
+        return render_template("index.html")
 
-    user = db.execute("SELECT * FROM users WHERE id = ?", session["user_id"])
-    stocks = db.execute("SELECT * FROM stocks WHERE user_id = ?", session["user_id"])
-    stock_prices = []
-    total_value = 0
-    for stock in stocks:
-        stock_price = lookup(stock["stock"])["price"]
-        stock_prices.append(stock_price)
-        total_value += (stock_price * stock["quantity"])
-    total_value += user[0]["cash"]
-
-    return render_template("index.html", user=user, stocks=stocks, prices=stock_prices, value=total_value, number=len(stocks))
-
-# Handle the requests to /buy
+    users = []
+    db = sqlite3.connect(db_path)
+    db.row_factory = sqlite3.Row
+    user = as_dict(db.execute("SELECT * FROM users WHERE u_id = ? AND c_id = ?", [session["user_id"], session["c_id"]]).fetchall())
+    
+    if user[0]["role"] in ["owner", "admin"]:
+        users = as_dict(db.execute("SELECT * FROM users WHERE c_id = ?", [user[0]["c_id"]]).fetchall())
+    vehicles = as_dict(db.execute("SELECT * FROM vehicles WHERE c_id = ?", [session["c_id"]]).fetchall())
+    db.close()
+    return render_template("index.html", user=user, users=users, vehicles=vehicles)
 
 
-@app.route("/buy", methods=["GET", "POST"])
-@login_required
-def buy():
-    """Buy shares of stock"""
-    if not session["user_id"]:
-        return redirect("/login")
-
-    user = db.execute("SELECT * FROM users WHERE id = ?", session["user_id"])
+@app.route("/register", methods=["GET", "POST"])
+def register():
+    """Register a new user"""
     if request.method == "GET":
-        stock = request.args.get("stock")
-        # Passing cash to tell the user how much he has to spend, and the stock in case coming from index.html
-        return render_template("buy.html", cash=user[0]["cash"], stock=stock)
+        return render_template("register.html")
 
     else:
-        stock = request.form.get("symbol")
-        if not stock:
-            return apology("Stock not found")
+        checks = check_inputs(request.form)
+        if checks[0]:
+            return apology("You have to input " + checks[1])
 
-        stock = lookup(stock)
-        if not stock:
-            return apology("Stock not found")
+        name = request.form.get("username")
+        email = request.form.get("email")
+        company = request.form.get("company")
+        
+        db = sqlite3.connect(db_path)
+        db.row_factory = sqlite3.Row
+        companys = as_dict(db.execute("SELECT * FROM companys WHERE name = ?", [company]).fetchall())
+        db.close()
 
-        quantity = request.form.get("shares")
-        if not quantity.isdigit() or int(quantity) < 1:
-            return apology("Quantity is not a positive integer")
+        if len(companys) > 0:
+            return apology("Company name already exists")
+        
+        if check_password(request.form.get("password")):
+            return apology("password does not meet requirements")
 
-        quantity = int(quantity)
-        if stock["price"] * quantity > user[0]["cash"]:
-            return apology("Not enought money")
+        if request.form.get("password") != request.form.get("confirmation"):
+            return apology("passwords don't match")
 
-        new_cash = user[0]["cash"] - (stock["price"] * quantity)
-        db.execute("UPDATE users SET cash = ? WHERE id = ?", new_cash, user[0]["id"])
-        db.execute("INSERT INTO transactions (user_id, t_type, stock, quantity, price,\
-                   timestamp) VALUES(?, ?, ?, ?, ?, ?)",
-                   user[0]["id"], "buy", stock["symbol"], quantity, stock["price"], datetime.datetime.now())
-        owned_stocks = db.execute("SELECT stock, quantity FROM stocks WHERE user_id = ? AND stock = ?",
-                                  user[0]["id"], stock["symbol"])
-        if len(owned_stocks) > 0:
-            new_value = owned_stocks[0]["quantity"] + quantity
-            db.execute("UPDATE stocks SET quantity = ? WHERE user_id = ? AND stock = ?", new_value, user[0]["id"], stock["symbol"])
+        hashed_password = generate_password_hash(request.form.get("password"))
+        db = sqlite3.connect(db_path)
+        cid = db.execute("INSERT INTO companys (name, owner) VALUES(?, ?)", (company, name)).lastrowid
+        db.execute("INSERT INTO users (c_id, username, email, hash, role) VALUES(?, ?, ?, ?, ?)",
+                    (cid, name, email, hashed_password, "owner"))
+        db.commit()
+        db.close()
 
-        else:
-            db.execute("INSERT INTO stocks (user_id, stock, quantity) VALUES(?, ?, ?)", user[0]["id"], stock["symbol"], quantity)
-        flash('Transaction Performed Successfully!')
-        return redirect("/")
-
-# To show the transaction history for the user
-
-
-@app.route("/history")
-@login_required
-def history():
-    """Show history of transactions"""
-    transactions = db.execute("SELECT * FROM transactions WHERE user_id = ?", session["user_id"])
-    number = len(transactions)
-    prices = []
-    for t in transactions:
-        prices.append(t["price"])
-    return render_template("history.html", transactions=transactions, number=number, prices=prices)
-
-# Logs user in
-
+        flash('Company/User registered')
+        return render_template("login.html")
 
 @app.route("/login", methods=["GET", "POST"])
 def login():
@@ -136,48 +124,38 @@ def login():
 
     # User reached route via POST (as by submitting a form via POST)
     if request.method == "POST":
-
-        # Ensure username was submitted
-        if not request.form.get("username"):
-            return apology("must provide username", 403)
-
-        # Ensure password was submitted
-        elif not request.form.get("password"):
-            return apology("must provide password", 403)
+        
+        checks = check_inputs(request.form)
+        if checks[0]:
+            return apology("must provide " + checks[1], 403)
 
         # Query database for username
-        rows = db.execute("SELECT * FROM users WHERE username = ?", request.form.get("username"))
+        db = sqlite3.connect(db_path)
+        db.row_factory = sqlite3.Row
+        company = as_dict(db.execute("SELECT * FROM companys WHERE name = ?", [request.form.get("company")]).fetchall())
+        
+        if len(company) != 1:
+            db.close()
+            return apology("Company not found", 403)
+
+        rows = as_dict(db.execute("SELECT * FROM users WHERE username = ? AND c_id = ?", [request.form.get("username"), company[0]["id"]]).fetchall())
+        db.close()
 
         # Ensure username exists and password is correct
         if len(rows) != 1 or not check_password_hash(rows[0]["hash"], request.form.get("password")):
             return apology("invalid username and/or password", 403)
 
         # Remember which user has logged in
-        session["user_id"] = rows[0]["id"]
-
-        db.execute("CREATE TABLE IF NOT EXISTS transactions \
-                    (t_id INTEGER PRIMARY KEY, user_id INTEGER,\
-                    t_type TEXT NOT NULL, stock TEXT NOT NULL,\
-                    quantity INTEGER NOT NULL, price REAL NOT NULL,\
-                    timestamp TEXT NOT NULL, FOREIGN KEY (user_id)\
-                    REFERENCES users (id) ON DELETE CASCADE \
-                    ON UPDATE NO ACTION)")
-        db.execute("CREATE TABLE IF NOT EXISTS stocks \
-                    (s_id INTEGER PRIMARY KEY, user_id INTEGER,\
-                    stock TEXT NOT NULL, quantity INTEGER NOT NULL,\
-                    FOREIGN KEY (user_id)\
-                    REFERENCES users (id) ON DELETE CASCADE \
-                    ON UPDATE NO ACTION)")
-
+        session["user_id"] = rows[0]["u_id"]
+        session["c_id"] = rows[0]["c_id"]
+        session["role"] = rows[0]["role"]
+        
         # Redirect user to home page
         return redirect("/")
 
     # User reached route via GET (as by clicking a link or via redirect)
     else:
         return render_template("login.html")
-
-# Logs user out
-
 
 @app.route("/logout")
 def logout():
@@ -188,119 +166,144 @@ def logout():
 
     # Redirect user to login form
     flash('You logged out')
-    return render_template("login.html")
+    return redirect("/")
 
-# Check for a stock's price
-
-
-@app.route("/quote", methods=["GET", "POST"])
+@app.route("/add-vehicle", methods=["GET", "POST"])
 @login_required
-def quote():
-    """Get stock quote."""
+def add_vehicle():
+    """Adds a new vehicle to the company"""
     if request.method == "GET":
-        return render_template("quote.html")
-
+        return render_template("add-vehicle.html")
+    
     else:
-        quoted = lookup(request.form.get("symbol"))
-        if not quoted:
-            return apology("Symbol not found")
+        checks = check_inputs(request.form)
+        if checks[0]:
+            return apology("must provide " + checks[1])
+        
+        try:
+            if int(request.form.get("year")) < 1900:
+                return apology("Year must have 4 digits")
+        
+        except:
+            return apology("Year must be a 4 digits number")
+        
+        vehicle = [ session.get("c_id"),
+                    request.form.get("make"),
+                    request.form.get("model"),
+                    request.form.get("year"),
+                    request.form.get("number"),
+                    request.form.get("vin"),
+                    request.form.get("tag")]
+        
+        db = sqlite3.connect(db_path)
+        v = db.execute("SELECT * FROM vehicles WHERE number = ? AND c_id = ?", [request.form.get("number"), session.get("c_id")]).fetchall()
+        if len(v) > 0:
+            db.close()
+            return apology("A vehicle with that ID already exists in the company database")
 
-        return render_template("quoted.html", name=quoted["name"], price=usd(quoted["price"]))
+        v = db.execute("SELECT * FROM vehicles WHERE vin = ?", [request.form.get("vin")]).fetchall()
+        if len(v) > 0:
+            db.close()
+            return apology("A vehicle with that VIN already exists in the company database")
 
-# Register a new user
-
-
-@app.route("/register", methods=["GET", "POST"])
-def register():
-    """Register user"""
-    if request.method == "GET":
-        return render_template("register.html")
-
-    else:
-        name = request.form.get("username")
-        if not request.form.get("username"):
-            return apology("must provide username")
-
-        usernames = db.execute("SELECT username FROM users WHERE username IS ?", name)
-        if len(usernames) > 0:
-            return apology("username already taken")
-
-        if not request.form.get("password"):
-            return apology("must provide password")
-
-        if not request.form.get("confirmation"):
-            return apology("must provide a confirmation")
-
-        if request.form.get("password") != request.form.get("confirmation"):
-            return apology("passwords don't match")
-
-        hashed_password = generate_password_hash(request.form.get("password"))
-        db.execute("INSERT INTO users (username, hash) VALUES(?, ?)", name, hashed_password)
-
-        flash('User registered')
-        return render_template("login.html")
-
-# Lets user sell his/her stocks
-
-
-@app.route("/sell", methods=["GET", "POST"])
+        db.execute("INSERT INTO vehicles (c_id, make, model, year, number, vin, tag) VALUES(?, ?, ?, ?, ?, ?, ?)", vehicle)
+        db.commit()
+        db.close()
+        flash('Vehicle added!')
+        return redirect("/")
+    
+@app.route("/add-user", methods=["GET", "POST"])
 @login_required
-def sell():
-    """Sell shares of stock"""
+@permissions_required
+def add_user():
+    """Adds a new user to the company"""
     if request.method == "GET":
-        if not session["user_id"]:
-            return redirect("/login")
-
-        user = db.execute("SELECT * FROM users WHERE id = ?", session["user_id"])
-        stocks = db.execute("SELECT * FROM stocks WHERE user_id = ?", session["user_id"])
-        stock_list = []
-        for stock in stocks:
-            stock_list.append(stock["stock"])
-
-        stock = request.args.get("stock")
-        return render_template("sell.html", stocks=stock_list, number=len(stock_list), stock=stock)
-
+        return render_template("add-user.html")
+    
     else:
-        stock = request.form.get("symbol")
-        if not stock:
-            return apology("You didn't provide any stock")
+        checks = check_inputs(request.form)
+        if checks[0]:
+            return apology("must provide " + checks[1])
+        
+        if check_password(request.form.get("password")):
+            return apology("password does not meet requirements")
+        
+        if request.form.get("role") not in ["admin", "user"]:
+            return apology("Wrong role")
+        
+        user = [ session.get("c_id"),
+                    request.form.get("username"),
+                    request.form.get("email"),
+                    generate_password_hash(request.form.get("password")),
+                    request.form.get("role")]
+        
+        db = sqlite3.connect(db_path)
+        v = db.execute("SELECT * FROM users WHERE (username = ? OR email = ?) AND c_id = ?",
+                         [request.form.get("username"), request.form.get("email"), session.get("c_id")]).fetchall()
+        if len(v) > 0:
+            db.close()
+            return apology("Username/Email already exists in the company database")
 
-        stock = lookup(stock)
-        if not stock:
-            return apology("Stock not found")
-
-        quantity = request.form.get("shares")
-        if not quantity.isdigit() or int(quantity) < 1:
-            return apology("Quantity is not a positive integer")
-
-        user = db.execute("SELECT * FROM users WHERE id = ?", session["user_id"])
-        stocks = db.execute("SELECT * FROM stocks WHERE user_id = ? AND stock = ?", session["user_id"], stock["symbol"])
-
-        if len(stocks) != 1:
-            return apology("You don't own that stock")
-
-        quantity = int(quantity)
-        if quantity > stocks[0]["quantity"]:
-            return apology("You can't sell more stocks than you own")
-
-        new_cash = user[0]["cash"] + (stock["price"] * quantity)
-        db.execute("UPDATE users SET cash = ? WHERE id = ?", new_cash, user[0]["id"])
-        db.execute("INSERT INTO transactions (user_id, t_type, stock, quantity, price,\
-                   timestamp) VALUES(?, ?, ?, ?, ?, ?)",
-                   user[0]["id"], "sell", stock["symbol"], quantity, stock["price"], datetime.datetime.now())
-
-        new_quantity = stocks[0]["quantity"] - quantity
-        if new_quantity < 1:
-            db.execute("DELETE FROM stocks WHERE stock = ?", stock["symbol"])
-
-        else:
-            db.execute("UPDATE stocks SET quantity = ? WHERE user_id = ? AND stock = ?",
-                       new_quantity, user[0]["id"], stock["symbol"])
-
-        flash('Transaction Performed Successfully!')
+        db.execute("INSERT INTO users (c_id, username, email, hash, role) VALUES(?, ?, ?, ?, ?)", user)
+        db.commit()
+        db.close()
+        flash('User added')
         return redirect("/")
 
-# Let user change password
+@app.route("/inspection", methods=["GET", "POST"])
+@login_required
+def inspection():
+    """Buy shares of stock"""
+
+    if request.method == "GET":
+        if not request.args.get("vehicle"):
+            db = sqlite3.connect(db_path)
+            db.row_factory = sqlite3.Row
+            vehicles = as_dict(db.execute("SELECT * FROM vehicles WHERE c_id = ? ORDER BY number", [session.get("c_id")]).fetchall())
+            db.close()
+            return render_template("inspection.html", vehicles=vehicles)
+        
+        else:
+            db = sqlite3.connect(db_path)
+            db.row_factory = sqlite3.Row
+            v = as_dict(db.execute("SELECT * FROM vehicles WHERE number = ? AND c_id = ?",
+                                    [request.args.get("vehicle"), session.get("c_id")]).fetchall())
+            oil = db.execute("SELECT next_oil FROM inspections WHERE v_id = ? ORDER BY date DESC", [v[0]["v_id"]]).fetchone()
+            db.close()
+            if len(v) != 1:
+                return redirect("/inspection")
+            else:
+                return render_template("inspection.html", inspection=c1, vehicle=request.args.get("vehicle"), v=v[0], oil=oil)
+
+    else:
+        query = "INSERT INTO inspections (c_id, u_id, v_id, miles, next_oil, date"
+        cols = ""
+        values = "(?, ?, ?, ?, ?, ?"
+        vars = [session.get("c_id"), session.get("user_id"),
+                request.form.get("v"), request.form.get("miles"),
+                request.form.get("maintenance"), datetime.datetime.today().strftime('%Y-%m-%d-%H:%M:%S')]
+        for d in c1:
+            if request.form.get(d[0]):
+                cols += ", " + d[0]
+                values += ", ?"
+                vars.append(request.form.get(d[0]))
+            if request.form.get(d[1]):
+                cols += ", " + d[1]
+                values += ", ?"
+                vars.append(request.form.get(d[1]))
+            if request.form.get(d[2]):
+                cols += ", " + d[2]
+                values += ", ?"
+                vars.append(request.form.get(d[2]))
+        
+        query += cols + ") VALUES" + values + ")"
+        db = sqlite3.connect(db_path)
+        db.execute(query, vars)
+        db.commit()
+        db.close()
+        
+        flash('Inspection loaded into database!')
+        return redirect("/")
 
 
 @app.route("/password", methods=["GET", "POST"])
@@ -311,62 +314,151 @@ def password():
         return render_template("password.html")
 
     else:
-        user = db.execute("SELECT * FROM users WHERE id = ?", session["user_id"])
-        if not request.form.get("old-password"):
-            return apology("must provide old password")
+        db = sqlite3.connect(db_path)
+        db.row_factory = sqlite3.Row
+        user = as_dict(db.execute("SELECT * FROM users WHERE u_id = ?", [session.get("user_id")]).fetchall())
+        db.close()
+
+        checks = check_inputs(request.form)
+        if checks[0]:
+            return apology("must provide " + checks[1])
+
+        if check_password(request.form.get("password")):
+            return apology("password does not meet requirements")
 
         if not check_password_hash(user[0]["hash"], request.form.get("old-password")):
             return apology("Wrong password")
 
-        if not request.form.get("password"):
-            return apology("must provide password")
-
-        if not request.form.get("confirmation"):
-            return apology("must provide a confirmation")
-
-        print(request.form.get("password"))
-        print(request.form.get("confirmation"))
         if request.form.get("password") != request.form.get("confirmation"):
             return apology("password and confimation don't match")
 
         hashed_password = generate_password_hash(request.form.get("password"))
-        db.execute("UPDATE users SET hash = ? WHERE id = ?", hashed_password, session["user_id"])
-
+        db = sqlite3.connect(db_path)
+        db.execute("UPDATE users SET hash = ? WHERE u_id = ?", [hashed_password, session.get("user_id")])
+        db.commit()
+        db.close()
         flash('Password changed!')
         return redirect("/")
 
-# Lets user add cash to their account
 
-
-@app.route("/cash", methods=["GET", "POST"])
+@app.route("/edit-vehicle", methods=["GET", "POST"])
 @login_required
-def cash():
-    """Add cash"""
+def edit_vehicle():
+    """Edit a Vehicle already in the database"""
+
     if request.method == "GET":
-        return render_template("cash.html")
+        if not request.args.get("vehicle"):
+            db = sqlite3.connect(db_path)
+            db.row_factory = sqlite3.Row
+            vehicles = as_dict(db.execute("SELECT * FROM vehicles WHERE c_id = ? ORDER BY number", [session.get("c_id")]).fetchall())
+            db.close()
+            return render_template("edit-vehicle.html", vehicles=vehicles)
+        
+        else:
+            db = sqlite3.connect(db_path)
+            db.row_factory = sqlite3.Row
+            v = as_dict(db.execute("SELECT * FROM vehicles WHERE number = ? AND c_id = ?",
+                                    [request.args.get("vehicle"), session.get("c_id")]).fetchall())
+            db.close()
+            if len(v) == 0:
+                return redirect("/edit-vehicle")
+            else:
+                return render_template("edit-vehicle.html", vehicle=request.args.get("vehicle"), v=v[0])
 
     else:
-        if not request.form.get("amount"):
-            return apology("must insert amount")
+        checks = check_inputs(request.form)
+        if checks[0]:
+            return apology("must provide " + checks[1])
+        
+        vehicle = [ request.form.get("make"),
+                    request.form.get("model"),
+                    request.form.get("year"),
+                    request.form.get("number"),
+                    request.form.get("tag") ]
+        
+        db = sqlite3.connect(db_path)
+        v_id = db.execute("SELECT v_id FROM vehicles WHERE number = ? AND c_id = ?",
+                            [request.form.get("v"), session.get("c_id")]).fetchone()
+        if len(v_id) != 1:
+            db.close()
+            return apology("something went wrong with that request")
+        
+        vehicle.append(v_id[0])
+        db.execute("UPDATE vehicles SET make = ?, model = ?, year = ?, number = ?, tag = ? WHERE v_id = ?", vehicle)
+        db.commit()
+        db.close()
+        
+        flash('Database Updated!')
+        return redirect("/")
 
-        try:
-            quantity = float(request.form.get("amount"))
-        except:
-            return apology("Quantity is not a number")
 
-        if quantity < 0.01:
-            return apology("Quantity is not positive")
+@app.route("/edit-user", methods=["GET", "POST"])
+@permissions_required
+@login_required
+def edit_user():
+    """Edit a user already in the database"""
 
-        if quantity > 10000:
-            return apology("Quantity is bigger that $10,000.00")
+    if request.method == "GET":
+        if not request.args.get("user"):
+            db = sqlite3.connect(db_path)
+            db.row_factory = sqlite3.Row
+            users = as_dict(db.execute('''SELECT * FROM users WHERE c_id = ? AND role != "owner"''', [session.get("c_id")]).fetchall())
+            db.close()
+            return render_template("edit-user.html", users=users)
+        
+        else:
+            db = sqlite3.connect(db_path)
+            db.row_factory = sqlite3.Row
+            u = as_dict(db.execute("SELECT * FROM users WHERE username = ?", [request.args.get("user")]).fetchall())
+            c = as_dict(db.execute("SELECT * FROM companys WHERE id = ?", [session.get("c_id")]).fetchall())
+            db.close()
+            if c[0]["owner"] == request.args.get("user"):
+                return apology("Can't edit the owner")
+            if len(u) != 1:
+                return redirect("/edit-user")
+            else:
+                return render_template("edit-user.html", user=request.args.get("user"), u=u[0])
 
-        user = db.execute("SELECT * FROM users WHERE id = ?", session["user_id"])
+    else:
+        checks = check_inputs(request.form)
+        if checks[0]:
+            return apology("must provide " + checks[1])
+        
+        db = sqlite3.connect(db_path)
+        db.row_factory = sqlite3.Row
+        u = as_dict(db.execute("SELECT * FROM users WHERE u_id = ?", [request.form.get("u")]).fetchall())
+        others = as_dict(db.execute("SELECT * FROM users WHERE u_id != ? AND c_id = ?",
+                            [request.form.get("u"), session.get("c_id")]).fetchall())
+        db.close()
+        if len(u) != 1:
+            return apology("something went wrong with that request")
+        
+        for other in others:
+            if u[0]["username"] == other["username"] or u[0]["email"] == other["email"]:
+                return apology("username/email already in company database")
+        
+        if u[0]["role"] == "owner" and request.form.get("role") != "owner":
+            return apology("can't change role of the owner")
+        
+        if request.form.get("role") not in ["admin", "user"]:
+            return apology("wrong role")
+            
+        if check_password(request.form.get("password")):
+            return apology("password does not meet requirements")
 
-        db.execute("UPDATE users SET cash = ? WHERE id = ?", user[0]["cash"] + quantity, session["user_id"])
+        if request.form.get("password") != request.form.get("confirmation"):
+            return apology("password and confirmation don't match")
+        
+        user = [ request.form.get("username"),
+                    request.form.get("email"),
+                    generate_password_hash(request.form.get("password")),
+                    request.form.get("role"),
+                    request.form.get("u")]
 
-        db.execute("INSERT INTO transactions (user_id, t_type, stock, quantity, price,\
-                   timestamp) VALUES(?, ?, ?, ?, ?, ?)",
-                   user[0]["id"], "Added Cash", "N/A", 1, quantity, datetime.datetime.now())
-
-        flash('You added cash to your account')
+        db = sqlite3.connect(db_path)
+        db.execute("UPDATE users SET username = ?, email = ?, hash = ?, role = ? WHERE u_id = ?", user)
+        db.commit()
+        db.close()
+        
+        flash('Database Updated!')
         return redirect("/")
