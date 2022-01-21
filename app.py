@@ -3,7 +3,7 @@ import os
 import datetime
 
 import sqlite3
-from flask import Flask, flash, redirect, render_template, request, session
+from flask import Flask, jsonify, flash, redirect, render_template, request, session
 from flask_session import Session
 from tempfile import mkdtemp
 from werkzeug.security import check_password_hash, generate_password_hash
@@ -476,43 +476,76 @@ def edit_user():
         return redirect("/")
 
 
-@app.route("/vehicles")
+@app.route("/vehicles", methods=["GET", "POST"])
 @permissions_required
 @login_required
 def vehicles():
     """View Vehicles"""
 
-    if not request.args.get("vehicle"):
-        db = sqlite3.connect(db_path)
-        db.row_factory = sqlite3.Row
-        vehicles = as_dict(db.execute("SELECT * FROM vehicles WHERE c_id = ? ORDER BY v_id DESC", [session.get("c_id")]).fetchall())
-        inspections = as_dict(db.execute("SELECT * FROM inspections WHERE c_id = ? ORDER BY date DESC", [session.get("c_id")]).fetchall())
-        db.close()
+    if request.method == "GET":
+        if not request.args.get("vehicle"):
+            db = sqlite3.connect(db_path)
+            db.row_factory = sqlite3.Row
+            vehicles = as_dict(db.execute("SELECT * FROM vehicles WHERE c_id = ? ORDER BY v_id DESC", [session.get("c_id")]).fetchall())
+            inspections = as_dict(db.execute("SELECT * FROM inspections WHERE c_id = ? ORDER BY date DESC", [session.get("c_id")]).fetchall())
+            db.close()
 
-        # Fancy way of creating a dictionary with the vehicles as keys and a list of inspections as values
-        v = {ve["number"]:[[i["next_oil"], i["miles"], i["date"]] for i in inspections if i["v_id"] == ve["v_id"]] for ve in vehicles}
-        for vehicle, i in v.items():
-            d1 = datetime.datetime.strptime(i[0][2], '%Y-%m-%d')
-            d2 = datetime.datetime.strptime(i[1][2], '%Y-%m-%d')
-            delta_t = abs((d2 - d1).days)
-            delta_m = i[0][1] - i[1][1]
-            remaining = i[0][0] - i[0][1]
-            day = remaining * delta_t // delta_m
-            delta = datetime.timedelta(days = day)
-            new_date = d1 + delta
-            i[0].append(new_date.strftime('%Y-%m-%d'))
-        return render_template("vehicles.html", vehicles=v)
+            # Fancy way of creating a dictionary with the vehicles as keys and a list of inspections as values
+            v = {ve["number"]:[[i["next_oil"], i["miles"], i["date"]] for i in inspections if i["v_id"] == ve["v_id"]] for ve in vehicles}
+            for vehicle, i in v.items():
+                if len(i) < 2:
+                    i.append(["No data", "No data", "No data", "No data"])
+                else:
+                    d1 = datetime.datetime.strptime(i[0][2], '%Y-%m-%d')
+                    d2 = datetime.datetime.strptime(i[1][2], '%Y-%m-%d')
+                    delta_t = abs((d2 - d1).days)
+                    delta_m = i[0][1] - i[1][1]
+                    remaining = i[0][0] - i[0][1]
+                    try:    #avoid deviding by 0
+                        day = remaining * delta_t // delta_m
+                    except:
+                        delta = datetime.timedelta(days = 730)
+                        new_date = d1 + delta
+                        i[0].append(new_date.strftime('%Y-%m-%d'))
+                    else:
+                        delta = datetime.timedelta(days = day)
+                        new_date = d1 + delta
+                        i[0].append(new_date.strftime('%Y-%m-%d'))
+            return render_template("vehicles.html", vehicles=v)
+        else:
+            db = sqlite3.connect(db_path)
+            db.row_factory = sqlite3.Row
+            vehicle = as_dict(db.execute("SELECT * FROM vehicles WHERE c_id = ? AND number = ?",
+                                    [session.get("c_id"), request.args.get("vehicle")]).fetchall())
+            if len(vehicle) != 1:
+                return redirect("/vehicles")
+            v = as_dict(db.execute("SELECT * FROM vehicles WHERE c_id = ? ORDER BY number",
+                                    [session.get("c_id")]).fetchall())
+            inspections = as_dict(db.execute("SELECT * FROM inspections WHERE c_id = ? AND v_id = ? ORDER BY date DESC, i_id DESC",
+                                                [session.get("c_id"), vehicle[0]["v_id"]]).fetchall())
+            users = as_dict(db.execute("SELECT * FROM users WHERE c_id = ?", [session.get("c_id")]).fetchall())
+            db.close()
+
+            inspection = [[i[c[1]], c[3], i["date"], u["username"]] for i in inspections
+                            for c in c1 for u in users if i[c[0]] == 0 and u["u_id"] == i["u_id"]]
+            if len(inspection) < 1:
+                inspection = [["No data", "No data", "No data", "No data"]]
+            return render_template("vehicles.html", vehicle=request.args.get("vehicle"), inspection=inspection, vehicles=v)
     else:
         db = sqlite3.connect(db_path)
         db.row_factory = sqlite3.Row
-        v = as_dict(db.execute("SELECT * FROM vehicles WHERE c_id = ? AND number = ?",
-                                [session.get("c_id"), request.args.get("vehicle")]).fetchall())
-        if len(v) != 1:
+        vehicle = as_dict(db.execute("SELECT * FROM vehicles WHERE c_id = ? AND number = ?",
+                                [session.get("c_id"), request.form.get("vehicle")]).fetchall())
+        if len(vehicle) != 1:
             return redirect("/vehicles")
-        inspections = dict(db.execute("SELECT * FROM inspections WHERE c_id = ? AND v_id = ? ORDER BY date DESC",
-                                            [session.get("c_id"), v[0]["v_id"]]).fetchone())
+        v = as_dict(db.execute("SELECT * FROM vehicles WHERE c_id = ? ORDER BY number",
+                                [session.get("c_id")]).fetchall())
+        inspections = as_dict(db.execute("SELECT * FROM inspections WHERE c_id = ? AND v_id = ? ORDER BY date DESC, i_id DESC",
+                                            [session.get("c_id"), vehicle[0]["v_id"]]).fetchall())
+        users = as_dict(db.execute("SELECT * FROM users WHERE c_id = ?", [session.get("c_id")]).fetchall())
         db.close()
-
-
-        inspection = [[inspections[c[1]], c[3]]  for c in c1 if inspections[c[0]] == 0]
-        return render_template("vehicles.html", vehicle=request.args.get("vehicle"), inspection=inspection)
+        inspection = [[i[c[1]], c[3], i["date"], u["username"]] for i in inspections
+                        for c in c1 for u in users if i[c[0]] == 0 and u["u_id"] == i["u_id"]]
+        if len(inspection) < 1:
+                inspection = [["No data", "No data", "No data", "No data"]]
+        return jsonify(inspection)

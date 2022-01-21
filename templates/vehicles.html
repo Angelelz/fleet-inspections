@@ -1,5 +1,29 @@
 {% extends "layout.html" %}
 
+{% block head %}
+<script>
+window.onload = function () {
+    let input = document.querySelector('select');
+    input.addEventListener('change', async function(e) {
+        let response = await fetch('/vehicles', {
+            method: 'POST',
+            body: 'vehicle=' + encodeURIComponent(e.target.value),
+            headers: {
+                'Content-type': 'application/x-www-form-urlencoded'
+            },
+            credentials: 'include',
+        });
+        let vehicles = await response.json();
+        let html = '';
+        for (let v in vehicles) {
+            html += '<tr><td>' + vehicles[v][3] + '</td><td>' + vehicles[v][2] + '</td><td>' + vehicles[v][1] + '</td><td>' + vehicles[v][0] + '</td></tr>';
+        }
+        document.getElementById('toChange').innerHTML = html;
+    });
+}
+</script>
+{% endblock %}
+
 {% block title %}
     List of the vehicles in your fleet
 {% endblock %}
@@ -33,26 +57,42 @@
         </table>
     </div>
 {% else %}
-    {% if inspection | len > 0 %}
+    <h4>View another</h4>
+    <form>
+        <div class="mb-3"></div>
+            <select class="form-select" name="vehicle" style="width: auto; margin-right:auto; margin-left:auto; margin-bottom:1em">
+                {% for v in vehicles %}
+                    {% if vehicle == v["number"] %}
+                        <option selected value="{{ v["number"] }}">Vehicle {{ v["number"] }}</option>
+                    {% else %}
+                        <option value="{{ v["number"] }}">Vehicle {{ v["number"] }}</option>
+                    {% endif %}
+                {% endfor %}
+            </select>
+        </div>
+    </form>
+    <div style="text-align:center; max-width:1100px; margin: auto;">
     <h2>Vehicle {{vehicle}}: Latest problems</h2>
         <table class="table table-hover table-sm">
             <thead>
                 <tr>
+                    <th>By</th>
+                    <th>Date</th>
                     <th>Item</th>
                     <th>Notes</th>
                 </tr>
             </thead>
-            <tbody>
+            <tbody id="toChange">
             {% for i in inspection %}
                 <tr>
+                    <td>{{ i[3] }}</td>
+                    <td>{{ i[2] }}</td>
                     <td>{{ i[1] }}</td>
                     <td>{{ i[0] }}</td>
                 </tr>
             {% endfor %}
             </tbody>
         </table>
-    {% else %}
-        <h2>No problems found in the latest inspection</h2>
-    {% endif %}
+    </div>
 {% endif %}
 {% endblock %}
