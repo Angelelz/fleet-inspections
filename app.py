@@ -486,7 +486,7 @@ def vehicles():
         if not request.args.get("vehicle"):
             db = sqlite3.connect(db_path)
             db.row_factory = sqlite3.Row
-            vehicles = as_dict(db.execute("SELECT * FROM vehicles WHERE c_id = ? ORDER BY v_id DESC", [session.get("c_id")]).fetchall())
+            vehicles = as_dict(db.execute("SELECT * FROM vehicles WHERE c_id = ? ORDER BY number", [session.get("c_id")]).fetchall())
             inspections = as_dict(db.execute("SELECT * FROM inspections WHERE c_id = ? ORDER BY date DESC", [session.get("c_id")]).fetchall())
             db.close()
 
