@@ -1,4 +1,3 @@
 Flask
 Flask-Session
-requests
 sqlite3

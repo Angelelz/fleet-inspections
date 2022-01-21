@@ -91,7 +91,7 @@ ins = '''CREATE TABLE IF NOT EXISTS inspections
                extra40 INTEGER, extra40_t TEXT, extra40_b BLOB,
                FOREIGN KEY (c_id) REFERENCES companys (id) ON DELETE CASCADE
                ON UPDATE NO ACTION, FOREIGN KEY (u_id) REFERENCES users (u_id) ON DELETE NO ACTION
-               ON UPDATE NO ACTION, FOREIGN KEY (v_id) REFERENCES users (v_id) ON DELETE NO ACTION
+               ON UPDATE NO ACTION, FOREIGN KEY (v_id) REFERENCES vehicles (v_id) ON DELETE CASCADE
                ON UPDATE NO ACTION)'''
 
 c1 = [["leak_sign", "leak_sign_t", "leak_sign_b", "There are no signs of leaks under the vehicle"],

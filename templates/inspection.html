@@ -19,7 +19,7 @@
 {% endblock %}
 
 {% block main %}
-    
+
     {% if not vehicle %}
     <h4>Vehicle to inspect</h4>
     <form action="/inspection" method="get">
@@ -44,7 +44,7 @@
         <input required autocomplete="off" class="form-control mx-auto w-auto" id="maintenance" name="maintenance" placeholder="Next oil change" value="{{ oil["next_oil"] }}" type="number">
         {% endif %}
         <table class="table table-hover table-sm"><tbody>
-            
+
             {% for i in inspection %}
                 <tr>
                     <td style="text-align:right;">{{ i[3] }}</td>
@@ -54,8 +54,9 @@
                     <td><input id="{{ i[1] }}" name="{{ i[1] }}" type="text" style="visibility:hidden"></td>
                 </tr>
             {% endfor %}
-            
+
         </tbody></table>
+        <input required autocomplete="off" class="form-control mx-auto w-auto" id="date" name="date" placeholder="Date" value="{{ date }}" type="date">
         <button name="v" class="btn btn-primary" type="submit" value="{{ v["v_id"] }}" >Add Inspection</button>
         </form>
     {% endif %}

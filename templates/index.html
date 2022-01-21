@@ -8,7 +8,7 @@
     {% if not session["user_id"] %}
         <h2>Register for an Admin account on the top right</h2>
     {% else %}
-    
+
         <div style="text-align:center; max-width:1100px; margin: auto;">
             <h2>Users</h2>
                 <table class="table table-hover table-sm">
@@ -60,6 +60,7 @@
                             <th>VIN</th>
                             <th></th>
                             <th></th>
+                            <th></th>
                         </tr>
                     </thead>
                     <tbody>
@@ -75,7 +76,10 @@
                                 <button name="vehicle" class="btn btn-primary" type="submit" value="{{ vehicles[i]["number"] }}">Edit</button>
                             </form></td>
                             <td><form action="/inspection" method="get">
-                                <button name="vehicle" class="btn btn-primary" type="submit" value="{{ vehicles[i]["number"] }}">New Inspection</button>
+                                <button name="vehicle" class="btn btn-primary" type="submit" value="{{ vehicles[i]["number"] }}">Inspect</button>
+                            </form></td>
+                            <td><form action="/vehicles" method="get">
+                                <button name="vehicle" class="btn btn-primary" type="submit" value="{{ vehicles[i]["number"] }}">View</button>
                             </form></td>
                         </tr>
                         {% endfor %}
