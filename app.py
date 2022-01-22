@@ -482,6 +482,47 @@ def edit_user():
 def vehicles():
     """View Vehicles"""
 
+    def get_inspections(method, request_arg):
+        db = sqlite3.connect(db_path)
+        db.row_factory = sqlite3.Row
+        vehicle = as_dict(db.execute("SELECT * FROM vehicles WHERE c_id = ? AND number = ?",
+                                [session.get("c_id"), request_arg.get("vehicle")]).fetchall())
+        if len(vehicle) != 1:
+            return redirect("/vehicles")
+        v = as_dict(db.execute("SELECT * FROM vehicles WHERE c_id = ? ORDER BY number",
+                                [session.get("c_id")]).fetchall())
+        inspections = as_dict(db.execute("SELECT * FROM inspections WHERE c_id = ? AND v_id = ? ORDER BY date DESC, i_id DESC",
+                                            [session.get("c_id"), vehicle[0]["v_id"]]).fetchall())
+        users = as_dict(db.execute("SELECT * FROM users WHERE c_id = ?", [session.get("c_id")]).fetchall())
+        db.close()
+
+        inspection = [[i[c[1]], c[3], i["date"], u["username"]] for i in inspections
+                        for c in c1 for u in users if i[c[0]] == 0 and u["u_id"] == i["u_id"]]
+        if len(inspection) < 1:
+            inspection = [["No data", "No data", "No data", "No data"]]
+        if method == "GET":
+            return render_template("vehicles.html", vehicle=request.args.get("vehicle"), inspection=inspection, vehicles=v)
+        else:
+            return jsonify(inspection)
+
+    def best_fit(X, Y, y):
+        if len(X) == 0:
+            return 0
+        xbar = sum(X)/len(X)
+        ybar = sum(Y)/len(Y)
+        n = len(X) # or len(Y)
+
+        numer = sum(xi*yi for xi,yi in zip(X, Y)) - n * xbar * ybar
+        denum = sum(xi**2 for xi in X) - n * xbar**2
+
+        b = numer / denum
+        a = ybar - b * xbar
+
+        #print('best fit line:\ny = {:.2f} + {:.2f}x'.format(a, b))
+
+        return (y - a) / b
+
+
     if request.method == "GET":
         if not request.args.get("vehicle"):
             db = sqlite3.connect(db_path)
@@ -505,47 +546,37 @@ def vehicles():
                         day = remaining * delta_t // delta_m
                     except:
                         delta = datetime.timedelta(days = 730)
-                        new_date = d1 + delta
-                        i[0].append(new_date.strftime('%Y-%m-%d'))
                     else:
                         delta = datetime.timedelta(days = day)
+                    finally:
                         new_date = d1 + delta
                         i[0].append(new_date.strftime('%Y-%m-%d'))
             return render_template("vehicles.html", vehicles=v)
         else:
-            db = sqlite3.connect(db_path)
-            db.row_factory = sqlite3.Row
-            vehicle = as_dict(db.execute("SELECT * FROM vehicles WHERE c_id = ? AND number = ?",
-                                    [session.get("c_id"), request.args.get("vehicle")]).fetchall())
-            if len(vehicle) != 1:
-                return redirect("/vehicles")
-            v = as_dict(db.execute("SELECT * FROM vehicles WHERE c_id = ? ORDER BY number",
-                                    [session.get("c_id")]).fetchall())
-            inspections = as_dict(db.execute("SELECT * FROM inspections WHERE c_id = ? AND v_id = ? ORDER BY date DESC, i_id DESC",
-                                                [session.get("c_id"), vehicle[0]["v_id"]]).fetchall())
-            users = as_dict(db.execute("SELECT * FROM users WHERE c_id = ?", [session.get("c_id")]).fetchall())
-            db.close()
-
-            inspection = [[i[c[1]], c[3], i["date"], u["username"]] for i in inspections
-                            for c in c1 for u in users if i[c[0]] == 0 and u["u_id"] == i["u_id"]]
-            if len(inspection) < 1:
-                inspection = [["No data", "No data", "No data", "No data"]]
-            return render_template("vehicles.html", vehicle=request.args.get("vehicle"), inspection=inspection, vehicles=v)
+            return get_inspections(request.method, request.args)
+    elif request.form:
+        return get_inspections(request.method, request.form)
     else:
         db = sqlite3.connect(db_path)
         db.row_factory = sqlite3.Row
-        vehicle = as_dict(db.execute("SELECT * FROM vehicles WHERE c_id = ? AND number = ?",
-                                [session.get("c_id"), request.form.get("vehicle")]).fetchall())
-        if len(vehicle) != 1:
-            return redirect("/vehicles")
-        v = as_dict(db.execute("SELECT * FROM vehicles WHERE c_id = ? ORDER BY number",
-                                [session.get("c_id")]).fetchall())
-        inspections = as_dict(db.execute("SELECT * FROM inspections WHERE c_id = ? AND v_id = ? ORDER BY date DESC, i_id DESC",
-                                            [session.get("c_id"), vehicle[0]["v_id"]]).fetchall())
-        users = as_dict(db.execute("SELECT * FROM users WHERE c_id = ?", [session.get("c_id")]).fetchall())
+        inspections = as_dict(db.execute("SELECT v_id, date, miles, next_oil FROM inspections WHERE c_id = ? ORDER BY i_id", [session.get("c_id")]).fetchall())
+        vehicles = as_dict(db.execute("SELECT * FROM vehicles WHERE c_id = ? ORDER BY number", [session.get("c_id")]).fetchall())
         db.close()
-        inspection = [[i[c[1]], c[3], i["date"], u["username"]] for i in inspections
-                        for c in c1 for u in users if i[c[0]] == 0 and u["u_id"] == i["u_id"]]
-        if len(inspection) < 1:
-                inspection = [["No data", "No data", "No data", "No data"]]
-        return jsonify(inspection)
+        #graph_data = [{v["number"]:[i["date"], i["miles"]] for i in inspections if i["v_id"] == v["v_id"]} for v in vehicles]
+        graph_data = []
+        for v in vehicles:
+            d = {v["number"]:{"dates":[],"miles":[]}}
+            miles_oil = 0
+            for i in inspections:
+                if i["v_id"] == v["v_id"]:
+                    d1 = datetime.datetime.strptime(i["date"], '%Y-%m-%d')
+                    d2 = datetime.datetime.strptime("2000-01-01", '%Y-%m-%d')
+                    d[v["number"]]["dates"].append((d1 - d2).days)
+                    d[v["number"]]["miles"].append(i["miles"])
+                    miles_oil = max(i["next_oil"], miles_oil)
+            next_oil = best_fit(d[v["number"]]["dates"], d[v["number"]]["miles"], miles_oil)
+            d[v["number"]]["dates"].append(next_oil)
+            d[v["number"]]["miles"].append(miles_oil)
+            graph_data.append(d)
+
+        return jsonify(graph_data)
