@@ -48,9 +48,9 @@
             {% for i in inspection %}
                 <tr>
                     <td style="text-align:right;">{{ i[3] }}</td>
-                    <td><input required name="{{ i[0] }}" onchange="showHide(this)" type="radio" value=1>OK</td>
-                    <td><input required id="{{ i[0] }}" name="{{ i[0] }}" onchange="showHide(this)" type="radio" value=0>Not ok</td>
-                    <td><input required name="{{ i[0] }}" onchange="showHide(this)" type="radio" value=2>N/A</td>
+                    <td><input required class="form-check-input" name="{{ i[0] }}" onchange="showHide(this)" type="radio" value=1>OK</td>
+                    <td><input required class="form-check-input" id="{{ i[0] }}" name="{{ i[0] }}" onchange="showHide(this)" type="radio" value=0>Not ok</td>
+                    <td><input required class="form-check-input" name="{{ i[0] }}" onchange="showHide(this)" type="radio" value=2>N/A</td>
                     <td><input id="{{ i[1] }}" name="{{ i[1] }}" type="text" style="visibility:hidden"></td>
                 </tr>
             {% endfor %}

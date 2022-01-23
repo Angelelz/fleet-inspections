@@ -10,6 +10,7 @@ from werkzeug.security import check_password_hash, generate_password_hash
 
 from helpers import apology, login_required, usd, check_password, as_dict, permissions_required, check_inputs
 from large_tables import ins, c1
+MAX_INSPECTIONS = 8
 
 # Configure application
 app = Flask(__name__)
@@ -491,8 +492,8 @@ def vehicles():
             return redirect("/vehicles")
         v = as_dict(db.execute("SELECT * FROM vehicles WHERE c_id = ? ORDER BY number",
                                 [session.get("c_id")]).fetchall())
-        inspections = as_dict(db.execute("SELECT * FROM inspections WHERE c_id = ? AND v_id = ? ORDER BY date DESC, i_id DESC",
-                                            [session.get("c_id"), vehicle[0]["v_id"]]).fetchall())
+        inspections = as_dict(db.execute("SELECT * FROM inspections WHERE c_id = ? AND v_id = ? ORDER BY date DESC, i_id DESC LIMIT ?",
+                                            [session.get("c_id"), vehicle[0]["v_id"], MAX_INSPECTIONS]).fetchall())
         users = as_dict(db.execute("SELECT * FROM users WHERE c_id = ?", [session.get("c_id")]).fetchall())
         db.close()
 
@@ -506,7 +507,7 @@ def vehicles():
             return jsonify(inspection)
 
     def best_fit(X, Y, y):
-        if len(X) == 0:
+        if len(X) == 0 or len(Y) == 0 or not y:
             return 0
         xbar = sum(X)/len(X)
         ybar = sum(Y)/len(Y)
@@ -515,10 +516,11 @@ def vehicles():
         numer = sum(xi*yi for xi,yi in zip(X, Y)) - n * xbar * ybar
         denum = sum(xi**2 for xi in X) - n * xbar**2
 
+        if denum == 0:
+            return 0
+
         b = numer / denum
         a = ybar - b * xbar
-
-        #print('best fit line:\ny = {:.2f} + {:.2f}x'.format(a, b))
 
         return (y - a) / b
 
@@ -533,24 +535,25 @@ def vehicles():
 
             # Fancy way of creating a dictionary with the vehicles as keys and a list of inspections as values
             v = {ve["number"]:[[i["next_oil"], i["miles"], i["date"]] for i in inspections if i["v_id"] == ve["v_id"]] for ve in vehicles}
+
             for vehicle, i in v.items():
-                if len(i) < 2:
+                miles_oil = 0
+                miles = []
+                dates = []
+                d2 = datetime.datetime.strptime("1970-01-01", '%Y-%m-%d')
+                if len(i) < 1:
                     i.append(["No data", "No data", "No data", "No data"])
-                else:
-                    d1 = datetime.datetime.strptime(i[0][2], '%Y-%m-%d')
-                    d2 = datetime.datetime.strptime(i[1][2], '%Y-%m-%d')
-                    delta_t = abs((d2 - d1).days)
-                    delta_m = i[0][1] - i[1][1]
-                    remaining = i[0][0] - i[0][1]
-                    try:    #avoid deviding by 0
-                        day = remaining * delta_t // delta_m
-                    except:
-                        delta = datetime.timedelta(days = 730)
-                    else:
-                        delta = datetime.timedelta(days = day)
-                    finally:
-                        new_date = d1 + delta
-                        i[0].append(new_date.strftime('%Y-%m-%d'))
+                elif len(i) > 2:
+                    for array in i:
+                        miles_oil = max(miles_oil, array[0])
+                        miles.append(array[1])
+                        d1 = datetime.datetime.strptime(array[2], '%Y-%m-%d')
+                        dates.append((d1 - d2)/datetime.timedelta(milliseconds=1))
+                    next_oil = d2 + datetime.timedelta(milliseconds=best_fit(dates, miles, miles_oil))
+                    
+                    i[0].append(next_oil.strftime('%Y-%m-%d'))
+
+
             return render_template("vehicles.html", vehicles=v)
         else:
             return get_inspections(request.method, request.args)
@@ -562,7 +565,6 @@ def vehicles():
         inspections = as_dict(db.execute("SELECT v_id, date, miles, next_oil FROM inspections WHERE c_id = ? ORDER BY i_id", [session.get("c_id")]).fetchall())
         vehicles = as_dict(db.execute("SELECT * FROM vehicles WHERE c_id = ? ORDER BY number", [session.get("c_id")]).fetchall())
         db.close()
-        #graph_data = [{v["number"]:[i["date"], i["miles"]] for i in inspections if i["v_id"] == v["v_id"]} for v in vehicles]
         graph_data = []
         for v in vehicles:
             d = {v["number"]:{"dates":[],"miles":[]}}
@@ -570,13 +572,14 @@ def vehicles():
             for i in inspections:
                 if i["v_id"] == v["v_id"]:
                     d1 = datetime.datetime.strptime(i["date"], '%Y-%m-%d')
-                    d2 = datetime.datetime.strptime("2000-01-01", '%Y-%m-%d')
-                    d[v["number"]]["dates"].append((d1 - d2).days)
+                    d2 = datetime.datetime.strptime("1970-01-01", '%Y-%m-%d')
+                    d[v["number"]]["dates"].append((d1 - d2)/datetime.timedelta(milliseconds=1))
                     d[v["number"]]["miles"].append(i["miles"])
                     miles_oil = max(i["next_oil"], miles_oil)
             next_oil = best_fit(d[v["number"]]["dates"], d[v["number"]]["miles"], miles_oil)
-            d[v["number"]]["dates"].append(next_oil)
-            d[v["number"]]["miles"].append(miles_oil)
+            if next_oil != 0:
+                d[v["number"]]["dates"].append(next_oil)
+                d[v["number"]]["miles"].append(miles_oil)
             graph_data.append(d)
 
         return jsonify(graph_data)

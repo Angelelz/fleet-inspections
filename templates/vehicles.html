@@ -1,9 +1,14 @@
 {% extends "layout.html" %}
 
 {% block head %}
-<script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/2.5.0/Chart.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/3.7.0/chart.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/chartjs-plugin-annotation/1.2.2/chartjs-plugin-annotation.min.js" integrity="sha512-HycvvBSFvDEVyJ0tjE2rPmymkt6XqsP/Zo96XgLRjXwn6SecQqsn+6V/7KYev66OshZZ9+f9AttCGmYqmzytiw==" crossorigin="anonymous" referrerpolicy="no-referrer"></script>
 <script>
 window.onload = function () {
+    var myChart;
+    const OPTIONS = { year: 'numeric', month: 'short', day: 'numeric' };
+    const TODAY = Date.parse(Date());
+    const OFFSET = new Date().getTimezoneOffset() * 60000;
     let input = document.querySelector('select');
     if (input) {
         input.addEventListener('change', async function(e) {
@@ -27,6 +32,10 @@ window.onload = function () {
             document.getElementById('toChange').innerHTML = html;
             url.search = search_params.toString();
             history.pushState(null, document.title, url);
+            document.getElementById('titleToChange').innerHTML = "Vehicle " + e.target.value + ": Latest issues";
+            //Vehicle {{vehicle}}: Latest problems
+            myChart.destroy();
+            do_graph();
         });
     }
     window.addEventListener('popstate', function () {
@@ -40,75 +49,123 @@ window.onload = function () {
         let all_inspections = await response.json();
         return all_inspections;
     }
-    var url = new URL(window.location.href);
-    var search_params = url.searchParams;
-    if (search_params.toString()) {
+    function do_graph() {
         graph().then(
             function(value) {
-                console.log(value);
+                var url = new URL(window.location.href);
+                var search_params = url.searchParams;
                 var dataset = [];
                 var storage = [];
                 for(var j=0;j<value.length;j++) {
+
                     for(var i=0;i<value[j][Object.keys(value[j])[0]]['dates'].length;i++)
                     {
-                        x = value[j][Object.keys(value[j])[0]]['dates'][i];
+                        x = value[j][Object.keys(value[j])[0]]['dates'][i] + OFFSET;
                         y = value[j][Object.keys(value[j])[0]]['miles'][i];
-                        var json = {x: x, y: y};
-                        storage.push(json);
+                        if (x != 0 || y != 0) {
+                            var json = {x: x, y: y};
+                            storage.push(json);
+                        }
                     }
-                    console.log(storage);
+                    if (storage.length > 0) {
+                        vehicle = 'vehicle ' + Object.keys(value[j])[0]
+                        var randomColor = Math.floor(Math.random()*16777215).toString(16);
+                        randomColor = '#' + randomColor;
+                        var obj = {label: vehicle, data: storage, fill: false, backgroundColor: randomColor, borderColor: randomColor, showLine: true};
+                        storage = [];
+                        if (search_params.has('vehicle')) {
+                            if (search_params.get('vehicle') == Object.keys(value[j])[0]) {
+                                dataset.push(obj);
+                            }
+                        }
+                        else {
+                            dataset.push(obj);
+                        }
 
-                    vehicle = 'vehicle ' + Object.keys(value[j])[0]
-                    var randomColor = Math.floor(Math.random()*16777215).toString(16);
-                    randomColor = '#' + randomColor;
-                    var obj = {label: vehicle, data: storage, fill: false, backgroundColor: randomColor, borderColor: randomColor};
-                    storage = [];
-                    dataset.push(obj);
+                    }
+
                 }
-                console.log(dataset);
                 const ctx = document.getElementById('myChart');
                 const data = {
                     datasets: dataset,
                 };
                 const config = {
                     type: 'scatter',
+                    plugins: ['chartjs-plugin-annotation'],
                     data: data,
                     options: {
+                        plugins: {
+                            tooltip: {
+                                callbacks: {
+                                    label: function(context) {
+                                        var label = context.dataset.label || '';
+                                        if ((context.dataset.data.length - 1 == context.dataIndex) && context.dataset.data.length > 1) {
+                                            label += ' oil change projection';
+                                        }
+
+                                        if (label) {
+                                            label += ': (' + context.parsed.y + ' miles : ';
+                                        }
+                                        else {
+                                            label += '(' + context.parsed.y + ' miles : ';
+                                        }
+                                        d = new Date(context.parsed.x)
+                                        label += d.toLocaleDateString('en-US', OPTIONS) + ')';
+                                        return label;
+                                    }
+                                }
+                            },
+                            autocolors: false,
+                            annotation: {
+                                annotations: [{
+                                    type: 'line',
+                                    xMin: TODAY,
+                                    xMax: TODAY,
+                                    label: {
+                                        content: "TODAY",
+                                        enabled: true,
+                                        position: "start",
+                                    }
+                                }]
+                            },
+                        },
+
                         scales: {
                             x: {
-                                ticks: {
-                                    display: false,
-                                },
-                                display: true,
+                                type: 'linear',
                                 title: {
                                     display: true,
                                     text: 'Date',
-                                    color: '#911',
-                                    font: {
-                                        size: 20,
-                                        family: 'Comic Sans MS',
-                                        lineHeight: 1.2,
-                                    },
-                                    padding: {top: 20, left: 0, right: 0, bottom: 0}
                                 },
-                                type: 'linear',
                                 position: 'bottom',
+                                ticks: {
+                                    callback: function(val, index) {
+                                        d = new Date(val)
+                                        return d.toLocaleDateString('en-US', OPTIONS);
+                                    },
+                                    maxRotation: 0,
+                                    autoSkipPadding: 8,
+                                }
                             },
-                            //xAxes: [{
-                            //    ticks: {
-                            //        display: false,
-                            //    }
-                            //}]
+                            y: {
+                                title: {
+                                    display: true,
+                                    text: 'Mileage',
+                                }
+                            }
                         }
                     }
                 };
-                const myChart = new Chart(
+                //Chart.register(chartjs-plugin-annotation);
+                myChart = new Chart(
                     document.getElementById('myChart'),
                     config
                 );
+
             }
         );
     }
+    do_graph();
 }
 </script>
 {% endblock %}
@@ -134,7 +191,11 @@ window.onload = function () {
             </thead>
             {% for v, i in vehicles.items() %}
             <tbody>
+            {% if i[0][0] < i[0][1] %}
+                <tr style='cursor: pointer; cursor: hand; background-color:#FF0000;' onclick="window.location='/vehicles?vehicle={{ v }}';">
+            {% else %}
                 <tr style='cursor: pointer; cursor: hand;' onclick="window.location='/vehicles?vehicle={{ v }}';">
+            {% endif %}
                     <td>{{ v }}</td>
                     <td>{{ i[0][0] }}</td>
                     <td>{{ i[0][1] }}</td>
@@ -161,7 +222,7 @@ window.onload = function () {
         </div>
     </form>
     <div style="text-align:center; max-width:1100px; margin: auto;">
-    <h2>Vehicle {{vehicle}}: Latest problems</h2>
+    <h2 id="titleToChange">Vehicle {{vehicle}}: Latest issues</h2>
         <table class="table table-hover table-sm">
             <thead>
                 <tr>
