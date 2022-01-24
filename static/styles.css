@@ -1,3 +1,7 @@
+:root {
+    --my-width: 300px;
+}
+
 /* Size for brand */
 nav .navbar-brand
 {
@@ -28,3 +32,44 @@ canvas.drawing, canvas.drawingBuffer {
     left: 0;
     top: 0;
 }
+
+@media screen and (max-width: 670px) {
+    #index-vehicles th:nth-child(3), #index-vehicles td:nth-child(3) {
+        display: none;
+    }
+}
+
+@media screen and (max-width: 600px) {
+    #index-vehicles th:nth-child(2), #index-vehicles td:nth-child(2) {
+        display: none;
+    }
+}
+
+@media screen and (max-width: 540px) {
+    #index-vehicles th:nth-child(1), #index-vehicles td:nth-child(1) {
+        display: none;
+    }
+}
+
+@media screen and (max-width: 500px) {
+    #index-vehicles th:nth-child(5), #index-vehicles td:nth-child(5) {
+        display: none;
+    }
+}
+
+@media screen and (max-width: 410px) {
+    #index-vehicles th:nth-child(6), #index-vehicles td:nth-child(6) {
+        display: none;
+    }
+}
+
+@media screen and (max-width: var(--my-width)) {
+    #index-users th:nth-child(2), #index-users td:nth-child(2) {
+        display: none;
+    }
+}
+/*
+#index-users {
+    width: var(--my-width);
+}
+/* var(--my-width) */

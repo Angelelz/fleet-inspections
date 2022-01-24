@@ -25,6 +25,7 @@ app.jinja_env.filters["len"] = len
 # Configure session to use filesystem (instead of signed cookies)
 app.config["SESSION_PERMANENT"] = False
 app.config["SESSION_TYPE"] = "filesystem"
+app.config["SESSION_COOKIE_SAMESITE"] = 'Lax'
 Session(app)
 
 # Database Name
@@ -71,7 +72,7 @@ def index():
 
     if user[0]["role"] in ["owner", "admin"]:
         users = as_dict(db.execute("SELECT * FROM users WHERE c_id = ?", [user[0]["c_id"]]).fetchall())
-    vehicles = as_dict(db.execute("SELECT * FROM vehicles WHERE c_id = ?", [session["c_id"]]).fetchall())
+    vehicles = as_dict(db.execute("SELECT * FROM vehicles WHERE c_id = ? ORDER BY number", [session["c_id"]]).fetchall())
     db.close()
     return render_template("index.html", user=user, users=users, vehicles=vehicles)
 
@@ -499,6 +500,10 @@ def vehicles():
 
         inspection = [[i[c[1]], c[3], i["date"], u["username"]] for i in inspections
                         for c in c1 for u in users if i[c[0]] == 0 and u["u_id"] == i["u_id"]]
+        
+        if len(inspection) == 0 and len(inspections) > 0:
+            inspection = [["No issues", "No issues", i["date"], u["username"]] for i in inspections for u in users if u["u_id"] == i["u_id"]]
+
         if len(inspection) < 1:
             inspection = [["No data", "No data", "No data", "No data"]]
         if method == "GET":
@@ -550,7 +555,7 @@ def vehicles():
                         d1 = datetime.datetime.strptime(array[2], '%Y-%m-%d')
                         dates.append((d1 - d2)/datetime.timedelta(milliseconds=1))
                     next_oil = d2 + datetime.timedelta(milliseconds=best_fit(dates, miles, miles_oil))
-                    
+
                     i[0].append(next_oil.strftime('%Y-%m-%d'))
 
 

@@ -8,15 +8,16 @@ window.onload = function() {
                 type: "LiveStream",
                 target: document.querySelector('#scanner-container'),
                 constraints: {
-                    width: 1280,
-                    height: 860,
+                    width: 2048,
+                    height: 1536,
                     facingMode: "environment"
                 },
             },
             decoder: {
                 readers: [
+                    "code_128_reader",
                     "code_39_reader",
-                    "code_39_vin_reader",
+                    "code_39_vin_reader"
                 ],
                 debug: {
                     showCanvas: true,
@@ -41,9 +42,11 @@ window.onload = function() {
                 return
             }
             console.log("Initialization finished. Ready to start");
-            Quagga.start();
-            // Set flag to is running
-            _scannerIsRunning = true;
+            if (!_scannerIsRunning) {
+                Quagga.start();
+                // Set flag to is running
+                _scannerIsRunning = true;
+            }
         });
         Quagga.onProcessed(function (result) {
             var drawingCtx = Quagga.canvas.ctx.overlay,
@@ -66,8 +69,29 @@ window.onload = function() {
             }
         });
         Quagga.onDetected(function (result) {
+            Quagga.stop();
+            document.getElementById("scanner-container").innerHTML = "<p>VIN detected</p>";
+            _scannerIsRunning = false;
             console.log("Barcode detected and processed : [" + result.codeResult.code + "]", result.code);
-
+            document.getElementById("vin").value = result.codeResult.code;
+            $.ajax({
+                url: "https://vpic.nhtsa.dot.gov/api/vehicles/DecodeVin/" + result.codeResult.code + "?format=json",
+                type: "GET",
+                dataType: "json",
+                success: function(result)
+                {
+                    document.getElementById("scanner-container").innerHTML = "<p>VIN decoded sucessfully</p>";
+                    document.getElementById("year").value = result.Results[9].Value;
+                    document.getElementById("make").value = result.Results[6].Value;
+                    document.getElementById("model").value = result.Results[8].Value;
+                },
+                error: function(xhr, ajaxOptions, thrownError)
+                {
+                    document.getElementById("scanner-container").innerHTML = "<p>An error was encountered while trying to decode your VIN, see Console for details.</p>";
+                    console.log(xhr.status);
+                    console.log(thrownError);
+                }
+            });
         });
     }
     // Start/stop scanner

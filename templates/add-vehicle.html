@@ -1,8 +1,21 @@
 {% extends "layout.html" %}
 
 {% block head %}
+    <script src="https://ajax.googleapis.com/ajax/libs/jquery/3.6.0/jquery.min.js"></script>
     <script src="https://cdn.rawgit.com/serratus/quaggaJS/0420d5e0/dist/quagga.min.js"></script>
-    <script src="./static/scripts.js"></script>
+    <script src="./static/add-vehicle.js"></script>
+    <style>
+        #scanner-container {
+            position: relative;
+            margin-left: auto;
+            margin-right: auto;
+            display: none;
+        }
+        video, canvas {
+            width: 100%;
+            max-width: 95vw;
+        }
+    </style>
 {% endblock %}
 
 {% block title %}
@@ -31,7 +44,9 @@
             <input required autocomplete="off" autofocus class="form-control mx-auto w-auto" id="vin" name="vin" placeholder="VIN" type="text">
         </div>
         <button class="btn btn-primary" type="submit">Add</button>
-        <div id="scanner-container" style="position: relative; width: 1280px; height: 860px; margin-left: auto; margin-right: auto; display: none;"></div>
-        <input type="button" id="btn" value="Start/Stop the scanner" />
+        <input class="btn btn-primary" type="button" id="btn" value="Start/Stop the scanner" />
+        <hr>
+        <div id="scanner-container"></div>
+
     </form>
 {% endblock %}
