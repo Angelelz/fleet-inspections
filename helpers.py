@@ -67,3 +67,22 @@ def check_inputs(obj):
         if not obj.get(key) or obj.get(key) == "":
             return [True, key]
     return [False, ""]
+
+
+def best_fit(X, Y, y):
+    if len(X) == 0 or len(Y) == 0 or not y:
+        return 0
+    xbar = sum(X)/len(X)
+    ybar = sum(Y)/len(Y)
+    n = len(X) # or len(Y)
+
+    numer = sum(xi*yi for xi,yi in zip(X, Y)) - n * xbar * ybar
+    denum = sum(xi**2 for xi in X) - n * xbar**2
+
+    if denum == 0:
+        return 0
+
+    b = numer / denum
+    a = ybar - b * xbar
+
+    return (y - a) / b

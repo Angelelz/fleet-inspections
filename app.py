@@ -8,7 +8,7 @@ from flask_session import Session
 from tempfile import mkdtemp
 from werkzeug.security import check_password_hash, generate_password_hash
 
-from helpers import apology, login_required, usd, check_password, as_dict, permissions_required, check_inputs
+from helpers import apology, login_required, usd, check_password, as_dict, permissions_required, check_inputs, best_fit
 from large_tables import ins, c1
 MAX_INSPECTIONS = 8
 
@@ -62,7 +62,7 @@ def after_request(response):
 @app.route("/")
 def index():
     """Show portfolio of stocks"""
-    if session.get("user_id") == None or not session["user_id"]:
+    if not session.get("user_id"):
         return render_template("index.html")
 
     users = []
@@ -255,7 +255,7 @@ def add_user():
 @app.route("/inspection", methods=["GET", "POST"])
 @login_required
 def inspection():
-    """Buy shares of stock"""
+    """Creates an inspection"""
 
     if request.method == "GET":
         if not request.args.get("vehicle"):
@@ -498,11 +498,20 @@ def vehicles():
         users = as_dict(db.execute("SELECT * FROM users WHERE c_id = ?", [session.get("c_id")]).fetchall())
         db.close()
 
-        inspection = [[i[c[1]], c[3], i["date"], u["username"]] for i in inspections
-                        for c in c1 for u in users if i[c[0]] == 0 and u["u_id"] == i["u_id"]]
+        inspection = []
 
-        if len(inspection) == 0 and len(inspections) > 0:
-            inspection = [["No issues", "No issues", i["date"], u["username"]] for i in inspections for u in users if u["u_id"] == i["u_id"]]
+        for i in inspections:
+            row = [["No issues", "No issues", i["date"], u["username"]] for u in users if u["u_id"] == i["u_id"]]
+            c_index = 0
+            for c in c1:
+                if i[c[0]] == 0:
+                    if c_index != 0:
+                        row.append(row[c_index - 1])
+                    row[c_index][0] = i[c[1]]
+                    row[c_index][1] = c[3]
+                    c_index +=1
+            for r in row:
+                inspection.append(r)
 
         if len(inspection) < 1:
             inspection = [["No data", "No data", "No data", "No data"]]
@@ -510,24 +519,6 @@ def vehicles():
             return render_template("vehicles.html", vehicle=request.args.get("vehicle"), inspection=inspection, vehicles=v)
         else:
             return jsonify(inspection)
-
-    def best_fit(X, Y, y):
-        if len(X) == 0 or len(Y) == 0 or not y:
-            return 0
-        xbar = sum(X)/len(X)
-        ybar = sum(Y)/len(Y)
-        n = len(X) # or len(Y)
-
-        numer = sum(xi*yi for xi,yi in zip(X, Y)) - n * xbar * ybar
-        denum = sum(xi**2 for xi in X) - n * xbar**2
-
-        if denum == 0:
-            return 0
-
-        b = numer / denum
-        a = ybar - b * xbar
-
-        return (y - a) / b
 
 
     if request.method == "GET":
