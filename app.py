@@ -68,7 +68,7 @@ def index():
     users = []
     db = sqlite3.connect(db_path)
     db.row_factory = sqlite3.Row
-    user = as_dict(db.execute("SELECT * FROM users WHERE u_id = ? AND c_id = ?", [session["user_id"], session["c_id"]]).fetchall())
+    user = as_dict(db.execute("SELECT * FROM users WHERE u_id = ? AND c_id = ?", [session.get("user_id"), session.get("c_id")]).fetchall())
 
     if user[0]["role"] in ["owner", "admin"]:
         users = as_dict(db.execute("SELECT * FROM users WHERE c_id = ?", [user[0]["c_id"]]).fetchall())
@@ -500,7 +500,7 @@ def vehicles():
 
         inspection = [[i[c[1]], c[3], i["date"], u["username"]] for i in inspections
                         for c in c1 for u in users if i[c[0]] == 0 and u["u_id"] == i["u_id"]]
-        
+
         if len(inspection) == 0 and len(inspections) > 0:
             inspection = [["No issues", "No issues", i["date"], u["username"]] for i in inspections for u in users if u["u_id"] == i["u_id"]]
 

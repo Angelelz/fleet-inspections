@@ -9,35 +9,37 @@
 window.onload = function() {
     let root = document.documentElement;
     var table = document.getElementById('index-users');
-    var originalWidth = table.style.width;
-    table.style.width = '1px';
-    const smallestWidth = table.getBoundingClientRect().width + 24;
-    table.style.width = originalWidth;
-    smalestWidthText = "(max-width: " + Math.floor(smallestWidth) + "px)";
-
-    var x = window.matchMedia(smalestWidthText);
-
-    function handleTabletChange(e) {
-        // Check if the media query is true
-        if (e.matches) {
-            var tds = document.getElementsByClassName("email-tohide");
-
-            for (var i = 0; i < tds.length; ++i) {
-                tds[i].style.display = "none";
+    if (table) {
+        var originalWidth = table.style.width;
+        table.style.width = '1px';
+        const smallestWidth = table.getBoundingClientRect().width + 24;
+        table.style.width = originalWidth;
+        smalestWidthText = "(max-width: " + Math.floor(smallestWidth) + "px)";
+    
+        var x = window.matchMedia(smalestWidthText);
+    
+        function handleTabletChange(e) {
+            // Check if the media query is true
+            if (e.matches) {
+                var tds = document.getElementsByClassName("email-tohide");
+    
+                for (var i = 0; i < tds.length; ++i) {
+                    tds[i].style.display = "none";
+                }
+                document.getElementById("head-to-hide").style.display = "none";
             }
-            document.getElementById("head-to-hide").style.display = "none";
-        }
-        else {
-            var tds = document.getElementsByClassName("email-tohide");
-            for (var i = 0; i < tds.length; ++i) {
-                tds[i].style.display = "table-cell";
+            else {
+                var tds = document.getElementsByClassName("email-tohide");
+                for (var i = 0; i < tds.length; ++i) {
+                    tds[i].style.display = "table-cell";
+                }
+                document.getElementById("head-to-hide").style.display = "table-cell";
             }
-            document.getElementById("head-to-hide").style.display = "table-cell";
         }
+    
+        x.addListener(handleTabletChange);
+        handleTabletChange(x);
     }
-
-    x.addListener(handleTabletChange);
-    handleTabletChange(x);
 
 }
 </script>
@@ -49,15 +51,9 @@ window.onload = function() {
     {% else %}
 
         <div style="text-align:center; max-width:1100px; margin: auto;">
+        {% if users != [] %}
             <h2>Users</h2>
                 <table class="table table-hover table-sm" id="index-users">
-                    {% if users == [] %}
-                    <thead>
-                        <tr>
-                            <th>Text for a non-admin</th>
-                        </tr>
-                    </thead>
-                    {% else %}
                     <thead>
                         <tr>
                             <th>User</th>
@@ -78,8 +74,9 @@ window.onload = function() {
                         </tr>
                         {% endfor %}
                     </tbody>
-                    {% endif %}
+
                 </table>
+        {% endif %}
                 <h2>Vehicles</h2>
                 <table class="table table-hover table-sm" id="index-vehicles">
                     {% if vehicles == [] %}
@@ -99,7 +96,9 @@ window.onload = function() {
                             <th>VIN</th>
                             <th></th>
                             <th></th>
+                            {% if users != [] %}
                             <th></th>
+                            {% endif %}
                         </tr>
                     </thead>
                     <tbody>
@@ -117,9 +116,11 @@ window.onload = function() {
                             <td><form action="/inspection" method="get">
                                 <button name="vehicle" class="btn btn-primary" type="submit" value="{{ vehicles[i]["number"] }}">Inspect</button>
                             </form></td>
+                            {% if users != [] %}
                             <td><form action="/vehicles" method="get">
                                 <button name="vehicle" class="btn btn-primary" type="submit" value="{{ vehicles[i]["number"] }}">View</button>
                             </form></td>
+                            {% endif %}
                         </tr>
                         {% endfor %}
                     </tbody>

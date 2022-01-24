@@ -28,7 +28,7 @@
 
         <nav class="bg-light border navbar navbar-expand-md navbar-light">
             <div class="container-fluid">
-                <a class="navbar-brand" href="/"><span class="blue">F</span><span class="red">l</span><span class="yellow">e</span><span class="green">e</span><span class="red">t</span><span class="blue">s</span></a>
+                <a class="navbar-brand" href="/"><img src="/static/Fleets_logo.png" alt="Fleets" width="200"></a>
                 <button aria-controls="navbar" aria-expanded="false" aria-label="Toggle navigation" class="navbar-toggler" data-bs-target="#navbar" data-bs-toggle="collapse" type="button">
                     <span class="navbar-toggler-icon"></span>
                 </button>
@@ -36,13 +36,28 @@
                     {% if session["user_id"] %}
                         <ul class="navbar-nav me-auto mt-2">
                             {% if session["role"] in ["owner", "admin"] %}
-                            <li class="nav-item"><a class="nav-link" href="/add-user">Add User</a></li>
-                            <li class="nav-item"><a class="nav-link" href="/edit-user">Edit User</a></li>
+                            <li class="nav-item dropdown">
+                                <a class="nav-link dropdown-toggle" href="#" id="navbarDropdown" role="button" data-bs-toggle="dropdown" aria-expanded="false">
+                                    Users
+                                </a>
+                                <ul class="dropdown-menu" aria-labelledby="navbarDropdown">
+                                    <li class="nav-item"><a class="nav-link" href="/add-user">Add User</a></li>
+                                    <li class="nav-item"><a class="nav-link" href="/edit-user">Edit User</a></li>
+                                </ul>
+                            <li class="nav-item dropdown">
+                                <a class="nav-link dropdown-toggle" href="#" id="navbarDropdown" role="button" data-bs-toggle="dropdown" aria-expanded="false">
+                                    Vehicles
+                                </a>
+                                <ul class="dropdown-menu" aria-labelledby="navbarDropdown">
+                                    <li class="nav-item"><a class="nav-link" href="/vehicles">View Vehicles</a></li>
                             {% endif %}
-                            <li class="nav-item"><a class="nav-link" href="/add-vehicle">Add Vehicle</a></li>
-                            <li class="nav-item"><a class="nav-link" href="/edit-vehicle">Edit Vehicle</a></li>
-                            <li class="nav-item"><a class="nav-link" href="/vehicles">View Vehicles</a></li>
-                            <li class="nav-item"><a class="nav-link" href="/inspection">New inspection</a></li>
+                                    <li class="nav-item"><a class="nav-link" href="/add-vehicle">Add Vehicle</a></li>
+                                    <li class="nav-item"><a class="nav-link" href="/edit-vehicle">Edit Vehicle</a></li>
+                                    <li class="nav-item"><a class="nav-link" href="/inspection">New inspection</a></li>
+                            {% if session["role"] in ["owner", "admin"] %}
+                                </ul>
+                            {% endif %}
+
 
 
                         </ul>
