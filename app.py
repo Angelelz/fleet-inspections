@@ -603,6 +603,7 @@ def vehicles():
     """View Vehicles"""
 
     def get_inspections(method, request_arg):
+        """Get inspections from database"""
         db = sqlite3.connect(db_path)
         db.row_factory = sqlite3.Row
         vehicle = as_dict(db.execute("SELECT * FROM vehicles WHERE c_id = ? AND number = ?",
