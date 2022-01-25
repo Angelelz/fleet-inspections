@@ -599,13 +599,18 @@ def edit_user():
 
         # Insert user into DB
         db = sqlite3.connect(db_path)
-        db.execute("UPDATE users SET username = ?, email = ?, hash = ?, role = ? WHERE u_id = ?", user)
-        db.commit()
-        db.close()
-
-        # Redirect to home
-        flash('Database Updated!')
-        return redirect("/")
+        try:
+            with db:
+                db.execute("UPDATE users SET username = ?, email = ?, hash = ?, role = ? WHERE u_id = ?", user)
+        except:
+            db.close()
+            flash('Error editing user, contact support')
+            return redirect("/")
+        else:
+            # Redirect to home
+            db.close()
+            flash('Database Updated!')
+            return redirect("/")
 
 
 @app.route("/vehicles", methods=["GET", "POST"])
