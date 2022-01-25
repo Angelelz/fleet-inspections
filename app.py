@@ -635,7 +635,7 @@ def vehicles():
             if j > MAX_INSPECTIONS:
                 break
             user = ""
-            issue = True
+            issue = False
             for u in users:
                 if u["u_id"] == i["u_id"]:
                     user = u["username"]
@@ -644,11 +644,11 @@ def vehicles():
             for c in c1:
                 # If the inspection has this issue flagged append a new array
                 if i[c[0]] == 0:
-                    issue = False
+                    issue = True
                     inspection.append([i[c[1]], c[3], i["date"], user])
 
             # If there was no issue in the inspection we still want to show inspection data with no issue
-            if issue:
+            if not issue:
                 inspection.append(["No issue", "No issue", i["date"], user])
             j += 1
 
