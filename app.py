@@ -570,23 +570,28 @@ def edit_user():
         if request.form.get("role") not in ["admin", "user"]:
             return apology("wrong role")
 
+        # If password doesn't meet requierements return apology
         if check_password(request.form.get("password")):
             return apology("password does not meet requirements")
 
+        # If password and confirmation don't match return apology
         if request.form.get("password") != request.form.get("confirmation"):
             return apology("password and confirmation don't match")
 
+        # Set the data into an array
         user = [ request.form.get("username"),
                     request.form.get("email"),
                     generate_password_hash(request.form.get("password")),
                     request.form.get("role"),
                     request.form.get("u")]
 
+        # Insert user into DB
         db = sqlite3.connect(db_path)
         db.execute("UPDATE users SET username = ?, email = ?, hash = ?, role = ? WHERE u_id = ?", user)
         db.commit()
         db.close()
 
+        # Redirect to home
         flash('Database Updated!')
         return redirect("/")
 
