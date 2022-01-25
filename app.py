@@ -620,7 +620,7 @@ def vehicles():
                                 [session.get("c_id")]).fetchall())
 
         # Get MAX_INSPECTIONS fron the vehicle sumbited and the users from DB
-        inspections = as_dict(db.execute("SELECT * FROM inspections WHERE c_id = ? AND v_id = ? ORDER BY date ASC LIMIT ?",
+        inspections = as_dict(db.execute("SELECT * FROM inspections WHERE c_id = ? AND v_id = ? ORDER BY date DESC LIMIT ?",
                                             [session.get("c_id"), vehicle[0]["v_id"], MAX_INSPECTIONS]).fetchall())
         users = as_dict(db.execute("SELECT * FROM users WHERE c_id = ?", [session.get("c_id")]).fetchall())
         db.close()
@@ -666,7 +666,7 @@ def vehicles():
             db = sqlite3.connect(db_path)
             db.row_factory = sqlite3.Row
             vehicles = as_dict(db.execute("SELECT * FROM vehicles WHERE c_id = ? ORDER BY (number + 0)", [session.get("c_id")]).fetchall())
-            inspections = as_dict(db.execute("SELECT * FROM inspections WHERE c_id = ? ORDER BY date ASC", [session.get("c_id")]).fetchall())
+            inspections = as_dict(db.execute("SELECT * FROM inspections WHERE c_id = ? ORDER BY date DESC", [session.get("c_id")]).fetchall())
             db.close()
 
             # Fancy way of creating a dictionary with the vehicles as keys and a list of inspections as values
