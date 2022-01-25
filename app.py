@@ -416,7 +416,7 @@ def password():
         db = sqlite3.connect(db_path)
         try:
             with db:
-                db.execute("UPDATE users SET hash = ? WHERE u_id = ?", [hashed_password, session.get("user_id")])
+                db.execute("UPDATE users SET hash = ? WHERE u_id = ? AND u_id > ?", [hashed_password, session.get("user_id")])
         except:
             # If there was an error flash the user
             db.close()
