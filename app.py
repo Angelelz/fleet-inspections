@@ -620,7 +620,7 @@ def vehicles():
                                 [session.get("c_id")]).fetchall())
 
         # Get MAX_INSPECTIONS fron the vehicle sumbited and the users from DB
-        inspections = as_dict(db.execute("SELECT * FROM inspections WHERE c_id = ? AND v_id = ? ORDER BY date DESC LIMIT ?",
+        inspections = as_dict(db.execute("SELECT *, username FROM inspections,  WHERE c_id = ? AND v_id = ? ORDER BY date DESC LIMIT ?",
                                             [session.get("c_id"), vehicle[0]["v_id"], MAX_INSPECTIONS]).fetchall())
         users = as_dict(db.execute("SELECT * FROM users WHERE c_id = ?", [session.get("c_id")]).fetchall())
         db.close()
