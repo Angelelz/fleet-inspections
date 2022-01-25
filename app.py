@@ -203,7 +203,6 @@ def add_vehicle():
         try:
             if int(request.form.get("year")) < 1900:
                 return apology("Year must have 4 digits")
-
         except:
             return apology("Year must be a 4 digits number")
 
@@ -418,6 +417,8 @@ def password():
         db.execute("UPDATE users SET hash = ? WHERE u_id = ?", [hashed_password, session.get("user_id")])
         db.commit()
         db.close()
+
+        # Flask confirmation and redirect to home
         flash('Password changed!')
         return redirect("/")
 
@@ -426,34 +427,51 @@ def password():
 @login_required
 def edit_vehicle():
     """Edit a Vehicle already in the database"""
-
+    # If request is GET render the page
     if request.method == "GET":
+        # If vehicle is not in get request
         if not request.args.get("vehicle"):
+            # Get all the company vehicles from DB
             db = sqlite3.connect(db_path)
             db.row_factory = sqlite3.Row
-            vehicles = as_dict(db.execute("SELECT * FROM vehicles WHERE c_id = ? ORDER BY number", [session.get("c_id")]).fetchall())
+            vehicles = as_dict(db.execute("SELECT * FROM vehicles WHERE c_id = ? ORDER BY (number + 0)", [session.get("c_id")]).fetchall())
             db.close()
+            # If only one vehicle just go to edit that one, otherwise render template to select it
             if len(vehicles) == 1:
                 return redirect("edit-vehicle?vehicle=" + str(vehicles[0]["number"]))
             else:
                 return render_template("edit-vehicle.html", vehicles=vehicles)
 
+        # If vechicle is in get request
         else:
+            # Query DB for that vehicle
             db = sqlite3.connect(db_path)
             db.row_factory = sqlite3.Row
             v = as_dict(db.execute("SELECT * FROM vehicles WHERE number = ? AND c_id = ?",
                                     [request.args.get("vehicle"), session.get("c_id")]).fetchall())
             db.close()
+
+            # If no such vehicle redirect to edit-vehicle otherwise pass the info to render the edit template for that vehicle
             if len(v) == 0:
                 return redirect("/edit-vehicle")
             else:
                 return render_template("edit-vehicle.html", vehicle=request.args.get("vehicle"), v=v[0])
 
+    # If request is post (Meaning: user sumbited an edit)
     else:
+        # Check that all the inputs have data except for tag, if not, render an apology
         checks = check_inputs(request.form, ["tag"])
         if checks[0]:
             return apology("must provide " + checks[1])
 
+        # Check if year is a 4digit number, if not, render an apology
+        try:
+            if int(request.form.get("year")) < 1900:
+                return apology("Year must have 4 digits")
+        except:
+            return apology("Year must be a 4 digits number")
+
+        # Create an array with the form data
         vehicle = [ request.form.get("make"),
                     request.form.get("model"),
                     request.form.get("year"),
