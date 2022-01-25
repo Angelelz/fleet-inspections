@@ -636,25 +636,11 @@ def vehicles():
                 if u["u_id"] == i["u_id"]:
                     user = u["username"]
 
-            #Index variable to mantain count
-            c_index = 0
-
             #iterate over every issue description
             for c in c1:
                 # If the inspection has this issue flagged append a new array to row and update its descriptions
                 if i[c[0]] == 0:
-                    if c_index != 0:
-                        a = row[c_index - 1][2]
-                        b = row[c_index - 1][3]
-                        row.append(["", "", a, b])
-                    row[c_index][0] = i[c[1]]
-                    row[c_index][1] = c[3]
-                    c_index += 1
-
-
-            # Append every array in row to inspection variable
-            for r in row:
-                inspection.append(r)
+                    inspection.append([i[c[1]], c[3], i["date"], user])
 
         # If no inspections just create an array with no data to show in page
         if len(inspection) < 1:
