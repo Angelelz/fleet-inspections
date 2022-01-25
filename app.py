@@ -725,7 +725,7 @@ def vehicles():
         # Get all the vehicles and inspections of the company
         db = sqlite3.connect(db_path)
         db.row_factory = sqlite3.Row
-        inspections = as_dict(db.execute("SELECT v_id, date, miles, next_oil FROM inspections WHERE c_id = ? ORDER BY date ASC", [session.get("c_id")]).fetchall())
+        inspections = as_dict(db.execute("SELECT v_id, date, miles, next_oil FROM inspections WHERE c_id = ? ORDER BY date DESC", [session.get("c_id")]).fetchall())
         vehicles = as_dict(db.execute("SELECT * FROM vehicles WHERE c_id = ? ORDER BY number", [session.get("c_id")]).fetchall())
         db.close()
 
