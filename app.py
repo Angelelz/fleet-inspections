@@ -623,10 +623,8 @@ def vehicles():
         inspections = as_dict(db.execute('''SELECT * FROM inspections, users WHERE inspections.c_id = ? AND inspections.v_id = ?
                                             AND inspections.u_id = users.u_id ORDER BY inspections.date DESC LIMIT ?''',
                                             [session.get("c_id"), vehicle[0]["v_id"], MAX_INSPECTIONS]).fetchall())
-        users = as_dict(db.execute("SELECT * FROM users WHERE c_id = ?", [session.get("c_id")]).fetchall())
         db.close()
 
-        print(inspections)
         # Create an array called inspection with this structure:
         # [Issue description, Issue name, Date, User (that made the inspection)] for every issue and inspection
         inspection = []
