@@ -545,16 +545,19 @@ def edit_user():
         if checks[0]:
             return apology("must provide " + checks[1])
 
-        
+        # Get the user and all other users from the DB
         db = sqlite3.connect(db_path)
         db.row_factory = sqlite3.Row
         u = as_dict(db.execute("SELECT * FROM users WHERE u_id = ?", [request.form.get("u")]).fetchall())
         others = as_dict(db.execute("SELECT * FROM users WHERE u_id != ? AND c_id = ?",
                             [request.form.get("u"), session.get("c_id")]).fetchall())
         db.close()
+
+        # If user is not in DB return an apology
         if len(u) != 1:
             return apology("something went wrong with that request")
 
+        # If trying to 
         for other in others:
             if u[0]["username"] == other["username"] or u[0]["email"] == other["email"]:
                 return apology("username/email already in company database")
