@@ -478,18 +478,23 @@ def edit_vehicle():
                     request.form.get("number"),
                     request.form.get("tag") ]
 
+        # Get the vehicle from database
         db = sqlite3.connect(db_path)
         v_id = db.execute("SELECT v_id FROM vehicles WHERE number = ? AND c_id = ?",
                             [request.form.get("v"), session.get("c_id")]).fetchone()
+
+        # If no vehicle, return an apology
         if len(v_id) != 1:
             db.close()
             return apology("something went wrong with that request")
 
+        # Add vehicle id to the vehicle array and update the vehicle with the new data
         vehicle.append(v_id[0])
         db.execute("UPDATE vehicles SET make = ?, model = ?, year = ?, number = ?, tag = ? WHERE v_id = ?", vehicle)
         db.commit()
         db.close()
 
+        # Flash the user the confimation and redirect to home
         flash('Database Updated!')
         return redirect("/")
 
@@ -499,19 +504,24 @@ def edit_vehicle():
 @login_required
 def edit_user():
     """Edit a user already in the database"""
-
+    # If request is GET render the page
     if request.method == "GET":
+        # If user is not in get request
         if not request.args.get("user"):
+            # Get all the company users from DB except for the owner
             db = sqlite3.connect(db_path)
             db.row_factory = sqlite3.Row
             users = as_dict(db.execute('''SELECT * FROM users WHERE c_id = ? AND role != "owner"''', [session.get("c_id")]).fetchall())
             db.close()
+            # If only one user just go to edit that one, otherwise render template to select it
             if len(users) == 1:
                 return redirect("/edit-user?user=" + str(users[0]["username"]))
             else:
                 return render_template("edit-user.html", users=users)
 
+        # If vechicle is in get request
         else:
+            # Query DB for that user
             db = sqlite3.connect(db_path)
             db.row_factory = sqlite3.Row
             u = as_dict(db.execute("SELECT * FROM users WHERE username = ?", [request.args.get("user")]).fetchall())
