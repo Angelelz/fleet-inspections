@@ -75,7 +75,14 @@
             </div>
         </nav>
 
-        {% if get_flashed_messages() %}
+        {% if get_flashed_messages(true, 'message') %}
+            <header>
+                <div class="alert alert-primary mb-0 text-center" role="alert">
+                    {{ get_flashed_messages() | join(" ") }}
+                </div>
+            </header>
+        {% endif %}
+        {% if get_flashed_messages(true, 'error') %}
             <header>
                 <div class="alert alert-primary mb-0 text-center" role="alert">
                     {{ get_flashed_messages() | join(" ") }}
