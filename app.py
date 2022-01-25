@@ -697,11 +697,17 @@ def vehicles():
                     next_oil = d2 + datetime.timedelta(milliseconds=best_fit(dates, miles, miles_oil))
                     # Append calculation in date format
                     i[0].append(next_oil.strftime('%Y-%m-%d'))
+                else:
+                    i[0].append("Need more data")
 
-
+            # Render template passing the data
             return render_template("vehicles.html", vehicles=v)
+
+        # If vehicle is in get request, let the get_inspections function handle it
         else:
             return get_inspections(request.args)
+
+    # If the request is post the vehicle
     elif request.form:
         return get_inspections(request.form)
     else:
