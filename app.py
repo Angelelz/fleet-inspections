@@ -417,6 +417,10 @@ def password():
         try:
             with db:
                 db.execute("UPDATE users SET hash = ? WHERE u_id = ?", [hashed_password, session.get("user_id")])
+            except:
+                flash('Password changed!')
+                return redirect("/")
+            finally:
         db.commit()
         db.close()
 
