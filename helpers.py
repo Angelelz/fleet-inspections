@@ -46,10 +46,6 @@ def permissions_required(f):
         return f(*args, **kwargs)
     return decorated_function
 
-def usd(value):
-    """Format value as USD."""
-    return f"${value:,.2f}"
-
 def check_password(password):
     '''Check if password follows requirements'''
     if password:
@@ -60,12 +56,15 @@ def check_password(password):
 def as_dict(rows):
     return list(map(dict,rows))
 
-def check_inputs(obj):
+def check_inputs(obj, array = [], ignore = True):
     for key in obj.keys():
-        if  key == "tag":
-            continue
-        if not obj.get(key) or obj.get(key) == "":
-            return [True, key]
+        if ignore:
+            if  key not in array and (not obj.get(key) or obj.get(key) == ""):
+                return [True, key]
+        else:
+            if key in array and (not obj.get(key) or obj.get(key) == ""):
+                return [True, key]
+
     return [False, ""]
 
 

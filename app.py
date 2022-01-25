@@ -1,14 +1,11 @@
-import dbm
-import os
 import datetime
 
 import sqlite3
 from flask import Flask, jsonify, flash, redirect, render_template, request, session
 from flask_session import Session
-from tempfile import mkdtemp
 from werkzeug.security import check_password_hash, generate_password_hash
 
-from helpers import apology, login_required, usd, check_password, as_dict, permissions_required, check_inputs, best_fit
+from helpers import apology, login_required, check_password, as_dict, permissions_required, check_inputs, best_fit
 from large_tables import ins, c1
 MAX_INSPECTIONS = 8
 
@@ -19,7 +16,6 @@ app = Flask(__name__)
 app.config["TEMPLATES_AUTO_RELOAD"] = True
 
 # Custom filter
-app.jinja_env.filters["usd"] = usd
 app.jinja_env.filters["len"] = len
 
 # Configure session to use filesystem (instead of signed cookies)
@@ -61,51 +57,65 @@ def after_request(response):
 # Handle requests to the root
 @app.route("/")
 def index():
-    """Show portfolio of stocks"""
+    """Handle requests to index"""
+    # If user si not logged in, show an index page with some text
     if not session.get("user_id"):
         return render_template("index.html")
 
+    # Get the user information from the DB
     users = []
     db = sqlite3.connect(db_path)
     db.row_factory = sqlite3.Row
     user = as_dict(db.execute("SELECT * FROM users WHERE u_id = ? AND c_id = ?", [session.get("user_id"), session.get("c_id")]).fetchall())
 
+    # If the user is admin or owner give them the user list and the vehicle list, otherwise just give them just the vehicles
     if user[0]["role"] in ["owner", "admin"]:
         users = as_dict(db.execute("SELECT * FROM users WHERE c_id = ?", [user[0]["c_id"]]).fetchall())
-    vehicles = as_dict(db.execute("SELECT * FROM vehicles WHERE c_id = ? ORDER BY number", [session["c_id"]]).fetchall())
+    vehicles = as_dict(db.execute("SELECT * FROM vehicles WHERE c_id = ? ORDER BY (number + 0)", [session["c_id"]]).fetchall())
     db.close()
+
+    # Render index.html with the values from DB
     return render_template("index.html", user=user, users=users, vehicles=vehicles)
 
 
 @app.route("/register", methods=["GET", "POST"])
 def register():
     """Register a new user"""
+    # If request is a GET just show register.html
     if request.method == "GET":
         return render_template("register.html")
 
+    # If request is post, process the data
     else:
+        # Check that all inputs have data, if not, render an apology
         checks = check_inputs(request.form)
         if checks[0]:
             return apology("You have to input " + checks[1])
 
+        # Set the form data to variables
         name = request.form.get("username")
         email = request.form.get("email")
         company = request.form.get("company")
 
+        # Get all the companies from DB
         db = sqlite3.connect(db_path)
         db.row_factory = sqlite3.Row
         companys = as_dict(db.execute("SELECT * FROM companys WHERE name = ?", [company]).fetchall())
         db.close()
 
+        # If company name exists return apology
         if len(companys) > 0:
             return apology("Company name already exists")
 
+        # If password doesn't meet requierements return apology
         if check_password(request.form.get("password")):
             return apology("password does not meet requirements")
 
+        # If password and confirmation don't match return apology
         if request.form.get("password") != request.form.get("confirmation"):
             return apology("passwords don't match")
 
+        # Insert company and user into database with current user as owner
         hashed_password = generate_password_hash(request.form.get("password"))
         db = sqlite3.connect(db_path)
         cid = db.execute("INSERT INTO companys (name, owner) VALUES(?, ?)", (company, name)).lastrowid
@@ -114,6 +124,7 @@ def register():
         db.commit()
         db.close()
 
+        # Flask confirmation and redirect to login page
         flash('Company/User registered')
         return render_template("login.html")
 
@@ -127,19 +138,22 @@ def login():
     # User reached route via POST (as by submitting a form via POST)
     if request.method == "POST":
 
+        # Check that all inputs have data, if not, render an apology
         checks = check_inputs(request.form)
         if checks[0]:
             return apology("must provide " + checks[1], 403)
 
-        # Query database for username
+        # Get company from database
         db = sqlite3.connect(db_path)
         db.row_factory = sqlite3.Row
         company = as_dict(db.execute("SELECT * FROM companys WHERE name = ?", [request.form.get("company")]).fetchall())
 
+        # If company is not in db render an apology
         if len(company) != 1:
             db.close()
             return apology("Company not found", 403)
 
+        # Get user from DB
         rows = as_dict(db.execute("SELECT * FROM users WHERE username = ? AND c_id = ?", [request.form.get("username"), company[0]["id"]]).fetchall())
         db.close()
 
@@ -147,7 +161,7 @@ def login():
         if len(rows) != 1 or not check_password_hash(rows[0]["hash"], request.form.get("password")):
             return apology("invalid username and/or password", 403)
 
-        # Remember which user has logged in
+        # Remember which user has logged in along with company and role
         session["user_id"] = rows[0]["u_id"]
         session["c_id"] = rows[0]["c_id"]
         session["role"] = rows[0]["role"]
@@ -166,7 +180,7 @@ def logout():
     # Forget any user_id
     session.clear()
 
-    # Redirect user to login form
+    # Redirect user home
     flash('You logged out')
     return redirect("/")
 
@@ -174,14 +188,18 @@ def logout():
 @login_required
 def add_vehicle():
     """Adds a new vehicle to the company"""
+    # If request is GET render the page
     if request.method == "GET":
         return render_template("add-vehicle.html")
 
+    # If request is post:
     else:
-        checks = check_inputs(request.form)
+        # Check that all inputs have data (except tag), if not, render an apology
+        checks = check_inputs(request.form, ["tag"])
         if checks[0]:
             return apology("must provide " + checks[1])
 
+        # Check if year is a 4digit number, if not, render an apology
         try:
             if int(request.form.get("year")) < 1900:
                 return apology("Year must have 4 digits")
@@ -189,6 +207,7 @@ def add_vehicle():
         except:
             return apology("Year must be a 4 digits number")
 
+        # Create an array with the form data
         vehicle = [ session.get("c_id"),
                     request.form.get("make"),
                     request.form.get("model"),
@@ -197,20 +216,25 @@ def add_vehicle():
                     request.form.get("vin"),
                     request.form.get("tag")]
 
+        # Ensure Vehicle id is unique
         db = sqlite3.connect(db_path)
         v = db.execute("SELECT * FROM vehicles WHERE number = ? AND c_id = ?", [request.form.get("number"), session.get("c_id")]).fetchall()
         if len(v) > 0:
             db.close()
             return apology("A vehicle with that ID already exists in the company database")
 
+        # Ensure VIN is unique
         v = db.execute("SELECT * FROM vehicles WHERE vin = ?", [request.form.get("vin")]).fetchall()
         if len(v) > 0:
             db.close()
             return apology("A vehicle with that VIN already exists in the company database")
 
+        # Insert Vehicle into database
         db.execute("INSERT INTO vehicles (c_id, make, model, year, number, vin, tag) VALUES(?, ?, ?, ?, ?, ?, ?)", vehicle)
         db.commit()
         db.close()
+
+        # Redirect to home
         flash('Vehicle added!')
         return redirect("/")
 
@@ -219,26 +243,33 @@ def add_vehicle():
 @permissions_required
 def add_user():
     """Adds a new user to the company"""
+    # If request is GET render the page
     if request.method == "GET":
         return render_template("add-user.html")
 
+    # If request is post:
     else:
+        # Check that all inputs have data, if not, render an apology
         checks = check_inputs(request.form)
         if checks[0]:
             return apology("must provide " + checks[1])
 
+        # If password doesn't meet requierements return apology
         if check_password(request.form.get("password")):
             return apology("password does not meet requirements")
 
+        # If role is not admin or user render an apology (Can only have 1 owner)
         if request.form.get("role") not in ["admin", "user"]:
             return apology("Wrong role")
 
+        # Set the data into an array
         user = [ session.get("c_id"),
                     request.form.get("username"),
                     request.form.get("email"),
                     generate_password_hash(request.form.get("password")),
                     request.form.get("role")]
 
+        # Query DB for the same username or email in the company, if exists return an apology
         db = sqlite3.connect(db_path)
         v = db.execute("SELECT * FROM users WHERE (username = ? OR email = ?) AND c_id = ?",
                          [request.form.get("username"), request.form.get("email"), session.get("c_id")]).fetchall()
@@ -246,9 +277,12 @@ def add_user():
             db.close()
             return apology("Username/Email already exists in the company database")
 
+        # Insert user into DB
         db.execute("INSERT INTO users (c_id, username, email, hash, role) VALUES(?, ?, ?, ?, ?)", user)
         db.commit()
         db.close()
+
+        # Redirect to home
         flash('User added')
         return redirect("/")
 
@@ -256,34 +290,52 @@ def add_user():
 @login_required
 def inspection():
     """Creates an inspection"""
-
+    # If request is GET render the page
     if request.method == "GET":
+        # If vehicle is not in get request
         if not request.args.get("vehicle"):
+            # Get all the company vehicles from DB
             db = sqlite3.connect(db_path)
             db.row_factory = sqlite3.Row
             vehicles = as_dict(db.execute("SELECT * FROM vehicles WHERE c_id = ? ORDER BY number", [session.get("c_id")]).fetchall())
             db.close()
+
+            # If only one vehicle just go to inspect that one, otherwise render template to select it
             if len(vehicles) == 1:
                 return redirect("/inspection?vehicle=" + str(vehicles[0]["number"]))
             else:
                 return render_template("inspection.html", vehicles=vehicles)
 
+        # If vechicle is in get request
         else:
+            # Query DB for that vehicle
             db = sqlite3.connect(db_path)
             db.row_factory = sqlite3.Row
             v = as_dict(db.execute("SELECT * FROM vehicles WHERE number = ? AND c_id = ?",
                                     [request.args.get("vehicle"), session.get("c_id")]).fetchall())
+
+            # If no such vehicle redirect to inspection
+            if len(v) != 1:
+                db.close()
+                return redirect("/inspection")
+
+            # Get next oil change from last inspection
             oil = db.execute("SELECT next_oil FROM inspections WHERE v_id = ? ORDER BY date DESC", [v[0]["v_id"]]).fetchone()
             db.close()
-            if len(v) != 1:
-                return redirect("/inspection")
-            else:
-                return render_template("inspection.html", inspection=c1, vehicle=request.args.get("vehicle"),
+
+            # pass the info to render the inspection for that vehicle
+            return render_template("inspection.html", inspection=c1, vehicle=request.args.get("vehicle"),
                                         v=v[0], oil=oil, date=datetime.date.today().strftime('%Y-%m-%d'))
 
+    # If request is post (Meaning: user sumbited an inspection)
     else:
-        if "" in [request.form.get("v"), request.form.get("miles"), request.form.get("maintenance"), request.form.get("date")]:
-            return apology("Missing data")
+        # Check that the important inputs have data, if not, render an apology
+        checks = check_inputs(request.form, ["v", "miles", "maintenance", "date"], False)
+        if checks[0]:
+            return apology("must provide " + checks[1])
+
+        # Create the DB query dinamically depending on the data sumbited
+        # 
         query = "INSERT INTO inspections (c_id, u_id, v_id, miles, next_oil, date"
         cols = ""
         values = "(?, ?, ?, ?, ?, ?"
@@ -377,7 +429,7 @@ def edit_vehicle():
                 return render_template("edit-vehicle.html", vehicle=request.args.get("vehicle"), v=v[0])
 
     else:
-        checks = check_inputs(request.form)
+        checks = check_inputs(request.form, ["tag"])
         if checks[0]:
             return apology("must provide " + checks[1])
 
