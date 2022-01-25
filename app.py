@@ -686,12 +686,16 @@ def vehicles():
                     # Need to convert dates to numbers to calculate best fit. Milliseconds from 01/01/1970 seem appropiate
                     d2 = datetime.datetime.strptime("1970-01-01", '%Y-%m-%d')
                     for array in i:
+                        # Get latest mileage to oil change
                         miles_oil = max(miles_oil, array[0])
+                        # Append the mileage to the miles array
                         miles.append(array[1])
+                        # Append the date in milliseconds from 1970 to the dates array
                         d1 = datetime.datetime.strptime(array[2], '%Y-%m-%d')
                         dates.append((d1 - d2)/datetime.timedelta(milliseconds=1))
+                    # Calculate projection
                     next_oil = d2 + datetime.timedelta(milliseconds=best_fit(dates, miles, miles_oil))
-
+                    # Append calculation in date format
                     i[0].append(next_oil.strftime('%Y-%m-%d'))
 
 
