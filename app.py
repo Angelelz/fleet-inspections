@@ -603,6 +603,7 @@ def edit_user():
             with db:
                 db.execute("UPDATE users SET username = ?, email = ?, hash = ?, role = ? WHERE u_id = ?", user)
         except:
+            # If there was an error flash the user
             db.close()
             flash('Error editing user, contact support')
             return redirect("/")
