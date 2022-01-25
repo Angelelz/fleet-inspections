@@ -632,15 +632,24 @@ def vehicles():
         # itearete over every inspection
         for i in inspections:
             user = ""
+            issue = True
             for u in users:
                 if u["u_id"] == i["u_id"]:
                     user = u["username"]
 
             #iterate over every issue description
             for c in c1:
-                # If the inspection has this issue flagged append a new array to row and update its descriptions
+                # If the inspection has this issue flagged append a new array
                 if i[c[0]] == 0:
+                    issue = False
                     inspection.append([i[c[1]], c[3], i["date"], user])
+
+            # If there was no issue in the inspection we still want to show inspection data with no issue
+            if issue:
+                inspection.append(["No issue", "No issue", i["date"], user])
+
+
+
 
         # If no inspections just create an array with no data to show in page
         if len(inspection) < 1:
