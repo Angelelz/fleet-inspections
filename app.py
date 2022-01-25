@@ -694,6 +694,8 @@ def vehicles():
                         d1 = datetime.datetime.strptime(array[2], '%Y-%m-%d')
                         dates.append((d1 - d2)/datetime.timedelta(milliseconds=1))
                     # Calculate projection
+                    miles.reverse()
+                    dates.reverse()
                     next_oil = d2 + datetime.timedelta(milliseconds=best_fit(dates, miles, miles_oil))
                     # Append calculation in date format
                     i[0].append(next_oil.strftime('%Y-%m-%d'))
