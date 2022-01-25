@@ -625,7 +625,7 @@ def vehicles():
         users = as_dict(db.execute("SELECT * FROM users WHERE c_id = ?", [session.get("c_id")]).fetchall())
         db.close()
 
-        # Create an array with this structure:
+        # Create an array called inspection with this structure:
         # [Issue description, Issue name, Date, User (that made the inspection)] for every issue and inspection
         inspection = []
 
@@ -647,9 +647,6 @@ def vehicles():
             # If there was no issue in the inspection we still want to show inspection data with no issue
             if issue:
                 inspection.append(["No issue", "No issue", i["date"], user])
-
-
-
 
         # If no inspections just create an array with no data to show in page
         if len(inspection) < 1:
