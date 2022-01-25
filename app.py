@@ -545,6 +545,7 @@ def edit_user():
         if checks[0]:
             return apology("must provide " + checks[1])
 
+        
         db = sqlite3.connect(db_path)
         db.row_factory = sqlite3.Row
         u = as_dict(db.execute("SELECT * FROM users WHERE u_id = ?", [request.form.get("u")]).fetchall())
