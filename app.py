@@ -615,7 +615,7 @@ def vehicles():
             db.close()
             return redirect("/vehicles")
 
-        # Get
+        # Get all the vehicles from DB
         v = as_dict(db.execute("SELECT * FROM vehicles WHERE c_id = ? ORDER BY (number + 0)",
                                 [session.get("c_id")]).fetchall())
         inspections = as_dict(db.execute("SELECT * FROM inspections WHERE c_id = ? AND v_id = ? ORDER BY date DESC, i_id DESC LIMIT ?",
