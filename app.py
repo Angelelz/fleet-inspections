@@ -645,6 +645,7 @@ def vehicles():
                         row.append(row[c_index - 1])
                     print(row)
                     row[c_index][0] = i[c[1]]
+                    print(row)
                     row[c_index][1] = c[3]
                     c_index += 1
                     print(row)
