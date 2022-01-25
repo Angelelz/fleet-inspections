@@ -531,12 +531,16 @@ def edit_user():
             # If trying to edit owner return an apology
             if c[0]["owner"] == request.args.get("user"):
                 return apology("Can't edit the owner")
+
+            # If no such user redirect to edit-user otherwise pass the info to render the edit template for that user
             if len(u) != 1:
                 return redirect("/edit-user")
             else:
                 return render_template("edit-user.html", user=request.args.get("user"), u=u[0])
 
+    # If request is post (Meaning: user sumbited an edit)
     else:
+        # Check that all the inputs have data except for tag, if not, render an apology
         checks = check_inputs(request.form)
         if checks[0]:
             return apology("must provide " + checks[1])
