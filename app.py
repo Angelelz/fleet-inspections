@@ -417,21 +417,15 @@ def password():
         try:
             with db:
                 db.execute("UPDATE users SET hash = ? WHERE u_id = ?", [hashed_password, session.get("user_id")])
-            except:
-                db.close()
-                flash('Error changing password, contact support')
-                return redirect("/")
-            else:
-                db.close()
-                
-
-            finally:
-        db.commit()
-        db.close()
-
-        # Flask confirmation and redirect to home
-        flash('Password changed!')
-        return redirect("/")
+        except:
+            db.close()
+            flash('Error changing password, contact support')
+            return redirect("/")
+        else:
+            # Flask confirmation and redirect to home
+            db.close()
+            flash('Password changed!')
+            return redirect("/")
 
 
 @app.route("/edit-vehicle", methods=["GET", "POST"])
