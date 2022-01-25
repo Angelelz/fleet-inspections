@@ -665,7 +665,7 @@ def vehicles():
             #inspections = as_dict(db.execute("SELECT * FROM inspections WHERE c_id = ? ORDER BY date DESC", [session.get("c_id")]).fetchall())
             oils = as_dict(db.execute('''SELECT vehicles.number, inspections.next_oil, inspections.miles, inspections.date
                                         FROM vehicles, inspections WHERE vehicles.c_id = ? AND inspections.c_id = ? AND
-                                        inspections.v_id = vehicles.v_id ORDER BY inspections.date DESC, (vehicles.number + 0) ASC''',
+                                        inspections.v_id = vehicles.v_id ORDER BY (vehicles.number + 0) ASC, inspections.date DESC''',
                                         [session.get("c_id"), session.get("c_id")]).fetchall())
             db.close()
 
