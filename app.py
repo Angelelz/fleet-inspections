@@ -400,8 +400,8 @@ def password():
         if check_password(request.form.get("password")):
             return apology("password does not meet requirements")
 
-        # If password and confirmation don't match return apology
-        if not check_password_hash(user[0]["hash"], request.form.get("old-password")):
+        # Ensure username exists and password is correct
+        if len(user) != 1 or not check_password_hash(user[0]["hash"], request.form.get("old-password")):
             return apology("Wrong password")
 
         if request.form.get("password") != request.form.get("confirmation"):
