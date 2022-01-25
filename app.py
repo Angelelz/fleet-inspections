@@ -340,6 +340,8 @@ def inspection():
 
         # values will be all the question marks (which should be the same number as variables to insert)
         values = "(?, ?, ?, ?, ?, ?"
+
+        # vars will be an array with al the variables to insert
         vars = [session.get("c_id"), session.get("user_id"),
                 request.form.get("v"), request.form.get("miles"),
                 request.form.get("maintenance"), request.form.get("date")]
