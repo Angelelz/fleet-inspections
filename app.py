@@ -630,10 +630,7 @@ def vehicles():
         inspection = []
 
         # itearete over every inspection
-        j = 0
         for i in inspections:
-            if j > MAX_INSPECTIONS:
-                break
             found_issue = False
 
             #iterate over every issue description
@@ -646,7 +643,6 @@ def vehicles():
             # If there was no issue in the inspection we still want to show inspection data with no issue
             if not found_issue:
                 inspection.append(["No issue", "No issue", i["date"], i["username"]])
-            j += 1
 
         # If no inspections just create an array with no data to show in page
         if len(inspection) < 1:
