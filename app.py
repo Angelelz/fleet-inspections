@@ -618,17 +618,28 @@ def vehicles():
         # Get all the vehicles from DB
         v = as_dict(db.execute("SELECT * FROM vehicles WHERE c_id = ? ORDER BY (number + 0)",
                                 [session.get("c_id")]).fetchall())
+
+        # Get MAX_INSPECTIONS fron the vehicle sumbited and the users from DB
         inspections = as_dict(db.execute("SELECT * FROM inspections WHERE c_id = ? AND v_id = ? ORDER BY date DESC, i_id DESC LIMIT ?",
                                             [session.get("c_id"), vehicle[0]["v_id"], MAX_INSPECTIONS]).fetchall())
         users = as_dict(db.execute("SELECT * FROM users WHERE c_id = ?", [session.get("c_id")]).fetchall())
         db.close()
 
+        # Create an array with this structure:
+        # [Issue description, Issue name, Date, User (that made the inspection)] for every issue and inspection
         inspection = []
 
+        # itearete over every inspection
         for i in inspections:
+            # Temp variable to contain the info to be appended to inspection variable
             row = [["No issues", "No issues", i["date"], u["username"]] for u in users if u["u_id"] == i["u_id"]]
+
+            #Index variable to mantain count
             c_index = 0
+
+            #iterate over every issue description
             for c in c1:
+                # If the inspection has this issue flagged append the data and
                 if i[c[0]] == 0:
                     if c_index != 0:
                         row.append(row[c_index - 1])
