@@ -557,11 +557,12 @@ def edit_user():
         if len(u) != 1:
             return apology("something went wrong with that request")
 
-        # If trying to 
+        # If trying to submit a user/email that already exists return an apology
         for other in others:
             if u[0]["username"] == other["username"] or u[0]["email"] == other["email"]:
                 return apology("username/email already in company database")
 
+        
         if u[0]["role"] == "owner" and request.form.get("role") != "owner":
             return apology("can't change role of the owner")
 
