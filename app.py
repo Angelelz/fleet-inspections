@@ -626,6 +626,7 @@ def vehicles():
         users = as_dict(db.execute("SELECT * FROM users WHERE c_id = ?", [session.get("c_id")]).fetchall())
         db.close()
 
+        print(inspections)
         # Create an array called inspection with this structure:
         # [Issue description, Issue name, Date, User (that made the inspection)] for every issue and inspection
         inspection = []
