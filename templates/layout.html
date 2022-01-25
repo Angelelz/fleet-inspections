@@ -78,14 +78,14 @@
         {% if get_flashed_messages(true, 'message') %}
             <header>
                 <div class="alert alert-primary mb-0 text-center" role="alert">
-                    {{ get_flashed_messages() | join(" ") }}
+                    {{ get_flashed_messages(true, 'message') | join(" ") }}
                 </div>
             </header>
         {% endif %}
         {% if get_flashed_messages(true, 'error') %}
             <header>
                 <div class="alert alert-primary mb-0 text-center" role="alert">
-                    {{ get_flashed_messages() | join(" ") }}
+                    {{ get_flashed_messages(true, 'error') | join(" ") }}
                 </div>
             </header>
         {% endif %}
