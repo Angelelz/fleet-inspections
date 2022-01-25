@@ -707,9 +707,11 @@ def vehicles():
         else:
             return get_inspections(request.args)
 
-    # If the request is post the vehicle
+    # If the request is post with the value of vehicle let the function handle the javascript request
     elif request.form:
         return get_inspections(request.form)
+
+    # If the request is post without the value of vehicle
     else:
         db = sqlite3.connect(db_path)
         db.row_factory = sqlite3.Row
