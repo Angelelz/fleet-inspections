@@ -642,9 +642,10 @@ def vehicles():
                 # If the inspection has this issue flagged append a new array to row and update its descriptions
                 if i[c[0]] == 0:
                     if c_index != 0:
-                        row.append(row[c_index - 1])
-                    row[c_index][0] = i[c[1]]
-                    row[c_index][1] = c[3]
+                        r = row[c_index - 1]
+                        row.append(r)
+                    row[c_index - 1][0] = i[c[1]]
+                    row[c_index - 1][1] = c[3]
                     c_index += 1
 
 
