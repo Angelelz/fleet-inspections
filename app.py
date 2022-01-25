@@ -647,6 +647,7 @@ def vehicles():
                     row[c_index][0] = i[c[1]]
                     row[c_index][1] = c[3]
                     c_index += 1
+                    print(c_index)
 
 
             # Append every array in row to inspection variable
