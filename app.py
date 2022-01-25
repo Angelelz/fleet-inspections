@@ -674,10 +674,13 @@ def vehicles():
 
             # Append a projection of the date of the next oil change
             for vehicle, i in v.items():
+                # Variable that we need for the best_fit function
                 miles_oil = 0
                 miles = []
                 dates = []
+                # Need to convert dates to numbers to calculate best fit. Milliseconds from 01/01/1970 seem appropiate
                 d2 = datetime.datetime.strptime("1970-01-01", '%Y-%m-%d')
+                # If there are no inspections just append no data array
                 if len(i) < 1:
                     i.append(["No data", "No data", "No data", "No data"])
                 elif len(i) > 2:
