@@ -258,6 +258,10 @@ def add_user():
         if check_password(request.form.get("password")):
             return apology("password does not meet requirements")
 
+        # If password and confirmation don't match return apology
+        if request.form.get("password") != request.form.get("confirmation"):
+            return apology("passwords don't match")
+
         # If role is not admin or user render an apology (Can only have 1 owner)
         if request.form.get("role") not in ["admin", "user"]:
             return apology("Wrong role")
@@ -404,6 +408,7 @@ def password():
         if len(user) != 1 or not check_password_hash(user[0]["hash"], request.form.get("old-password")):
             return apology("Wrong password")
 
+        # If password and confirmation don't match return apology
         if request.form.get("password") != request.form.get("confirmation"):
             return apology("password and confimation don't match")
 
