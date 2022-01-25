@@ -338,7 +338,7 @@ def inspection():
         # query will always start the same way
         query = "INSERT INTO inspections (c_id, u_id, v_id, miles, next_oil, date"
 
-        # values will be
+        # values will be all the question marks (which should be the same number as variables to insert)
         values = "(?, ?, ?, ?, ?, ?"
         vars = [session.get("c_id"), session.get("user_id"),
                 request.form.get("v"), request.form.get("miles"),
@@ -357,7 +357,7 @@ def inspection():
                 values += ", ?"
                 vars.append(request.form.get(d[2]))
 
-        query += ") VALUES" + values + ")"
+        query += ") VALUES " + values + ")"
         db = sqlite3.connect(db_path)
         db.execute(query, vars)
         db.commit()
