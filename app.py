@@ -673,7 +673,7 @@ def vehicles():
             #v = {ve["number"]:[[i["next_oil"], i["miles"], i["date"]] for i in inspections if i["v_id"] == ve["v_id"]] for ve in vehicles}
             print(oils)
             # Append a projection of the date of the next oil change
-            for vehicle, i in v.items():
+            for o in oils:
                 # If there are no inspections just append no data array
                 if len(i) < 1:
                     i.append(["No data", "No data", "No data", "No data"])
