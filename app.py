@@ -345,26 +345,32 @@ def inspection():
         vars = [session.get("c_id"), session.get("user_id"),
                 request.form.get("v"), request.form.get("miles"),
                 request.form.get("maintenance"), request.form.get("date")]
-        for d in c1:
-            if request.form.get(d[0]):
-                query += ", " + d[0]
-                values += ", ?"
-                vars.append(request.form.get(d[0]))
-            if request.form.get(d[1]):
-                query += ", " + d[1]
-                values += ", ?"
-                vars.append(request.form.get(d[1]))
-            if request.form.get(d[2]):
-                query += ", " + d[2]
-                values += ", ?"
-                vars.append(request.form.get(d[2]))
 
+        # iterate over c1 to get whatever the user submited
+        for c in c1:
+            if request.form.get(c[0]):
+                query += ", " + c[0]
+                values += ", ?"
+                vars.append(request.form.get(c[0]))
+            if request.form.get(c[1]):
+                query += ", " + c[1]
+                values += ", ?"
+                vars.append(request.form.get(c[1]))
+            if request.form.get(c[2]):
+                query += ", " + c[2]
+                values += ", ?"
+                vars.append(request.form.get(c[2]))
+
+        # assemble the final query string
         query += ") VALUES " + values + ")"
+
+        # Submit the quiery to the database
         db = sqlite3.connect(db_path)
         db.execute(query, vars)
         db.commit()
         db.close()
 
+        # Confirm to the user and redirect to home
         flash('Inspection loaded into database!')
         return redirect("/")
 
