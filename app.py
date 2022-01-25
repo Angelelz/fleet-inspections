@@ -620,7 +620,7 @@ def vehicles():
                                 [session.get("c_id")]).fetchall())
 
         # Get MAX_INSPECTIONS fron the vehicle sumbited and the users from DB
-        inspections = as_dict(db.execute("SELECT *, username FROM inspections,  WHERE c_id = ? AND v_id = ? ORDER BY date DESC LIMIT ?",
+        inspections = as_dict(db.execute("SELECT * FROM inspections, users WHERE inspections.c_id = ? AND inspections.v_id = ? AND inspections.u_id = users.u_id ORDER BY inspections.date DESC LIMIT ?",
                                             [session.get("c_id"), vehicle[0]["v_id"], MAX_INSPECTIONS]).fetchall())
         users = as_dict(db.execute("SELECT * FROM users WHERE c_id = ?", [session.get("c_id")]).fetchall())
         db.close()
@@ -634,22 +634,24 @@ def vehicles():
         for i in inspections:
             if j > MAX_INSPECTIONS:
                 break
-            user = ""
+
             issue = False
+            '''user = ""
+
             for u in users:
                 if u["u_id"] == i["u_id"]:
-                    user = u["username"]
+                    user = u["username"]'''
 
             #iterate over every issue description
             for c in c1:
                 # If the inspection has this issue flagged append a new array
                 if i[c[0]] == 0:
                     issue = True
-                    inspection.append([i[c[1]], c[3], i["date"], user])
+                    inspection.append([i[c[1]], c[3], i["date"], i["username"]])
 
             # If there was no issue in the inspection we still want to show inspection data with no issue
             if not issue:
-                inspection.append(["No issue", "No issue", i["date"], user])
+                inspection.append(["No issue", "No issue", i["date"], i["username"]])
             j += 1
 
         # If no inspections just create an array with no data to show in page
