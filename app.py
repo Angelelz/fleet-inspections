@@ -496,13 +496,19 @@ def edit_vehicle():
 
         # Add vehicle id to the vehicle array and update the vehicle with the new data
         vehicle.append(v_id[0])
-        db.execute("UPDATE vehicles SET make = ?, model = ?, year = ?, number = ?, tag = ? WHERE v_id = ?", vehicle)
-        db.commit()
-        db.close()
-
-        # Flash the user the confimation and redirect to home
-        flash('Database Updated!')
-        return redirect("/")
+        try:
+            with db:
+                db.execute("UPDATE vehicles SET make = ?, model = ?, year = ?, number = ?, tag = ? WHERE v_id = ?", vehicle)
+        except:
+            # If the was an error flash the user
+            db.close()
+            flash('Error editing vehicle, contact support')
+            return redirect("/")
+        else:
+            # Flash the user the confimation and redirect to home
+            db.close()
+            flash('Database Updated!')
+            return redirect("/")
 
 
 @app.route("/edit-user", methods=["GET", "POST"])
