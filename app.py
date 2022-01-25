@@ -713,11 +713,15 @@ def vehicles():
 
     # If the request is post without the value of vehicle
     else:
+
+        # Get all the vehicles and inspections of the company
         db = sqlite3.connect(db_path)
         db.row_factory = sqlite3.Row
         inspections = as_dict(db.execute("SELECT v_id, date, miles, next_oil FROM inspections WHERE c_id = ? ORDER BY i_id", [session.get("c_id")]).fetchall())
         vehicles = as_dict(db.execute("SELECT * FROM vehicles WHERE c_id = ? ORDER BY number", [session.get("c_id")]).fetchall())
         db.close()
+
+        # Create the data for the graphs for all vehicles including projections
         graph_data = []
         for v in vehicles:
             d = {v["number"]:{"dates":[],"miles":[]}}
