@@ -521,12 +521,14 @@ def edit_user():
 
         # If vechicle is in get request
         else:
-            # Query DB for that user
+            # Query DB for that user and the company
             db = sqlite3.connect(db_path)
             db.row_factory = sqlite3.Row
             u = as_dict(db.execute("SELECT * FROM users WHERE username = ?", [request.args.get("user")]).fetchall())
             c = as_dict(db.execute("SELECT * FROM companys WHERE id = ?", [session.get("c_id")]).fetchall())
             db.close()
+
+            # If trying to edit owner return an apology
             if c[0]["owner"] == request.args.get("user"):
                 return apology("Can't edit the owner")
             if len(u) != 1:
