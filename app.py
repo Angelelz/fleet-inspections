@@ -670,7 +670,7 @@ def vehicles():
             db.close()
 
             # Fancy way of creating a dictionary with the vehicles as keys and a list of inspections as values
-            v = {o["number"]:[[o["next_oil"], o["miles"], o["date"]] for o in oils}
+            #v = {ve["number"]:[[i["next_oil"], i["miles"], i["date"]] for i in inspections if i["v_id"] == ve["v_id"]] for ve in vehicles}
 
             # Append a projection of the date of the next oil change
             for vehicle, i in v.items():
