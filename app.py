@@ -414,7 +414,9 @@ def password():
         # Update database with new password
         hashed_password = generate_password_hash(request.form.get("password"))
         db = sqlite3.connect(db_path)
-        db.execute("UPDATE users SET hash = ? WHERE u_id = ?", [hashed_password, session.get("user_id")])
+        try:
+            with db:
+                db.execute("UPDATE users SET hash = ? WHERE u_id = ?", [hashed_password, session.get("user_id")])
         db.commit()
         db.close()
 
