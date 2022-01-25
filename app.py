@@ -661,19 +661,15 @@ def vehicles():
             # Get all the company vehicles and inspections from DB
             db = sqlite3.connect(db_path)
             db.row_factory = sqlite3.Row
-            #vehicles = as_dict(db.execute("SELECT * FROM vehicles WHERE c_id = ? ORDER BY (number + 0)", [session.get("c_id")]).fetchall())
-            #inspections = as_dict(db.execute("SELECT * FROM inspections WHERE c_id = ? ORDER BY date DESC", [session.get("c_id")]).fetchall())
-            oils = as_dict(db.execute('''SELECT vehicles.number, inspections.next_oil, inspections.miles, inspections.date
-                                        FROM vehicles, inspections WHERE vehicles.c_id = ? AND inspections.c_id = ? AND
-                                        inspections.v_id = vehicles.v_id ORDER BY (vehicles.number + 0) ASC, inspections.date DESC''',
-                                        [session.get("c_id"), session.get("c_id")]).fetchall())
+            vehicles = as_dict(db.execute("SELECT * FROM vehicles WHERE c_id = ? ORDER BY (number + 0)", [session.get("c_id")]).fetchall())
+            inspections = as_dict(db.execute("SELECT * FROM inspections WHERE c_id = ? ORDER BY date DESC", [session.get("c_id")]).fetchall())
             db.close()
 
             # Fancy way of creating a dictionary with the vehicles as keys and a list of inspections as values
-            #v = {ve["number"]:[[i["next_oil"], i["miles"], i["date"]] for i in inspections if i["v_id"] == ve["v_id"]] for ve in vehicles}
-            print(oils)
+            v = {ve["number"]:[[i["next_oil"], i["miles"], i["date"]] for i in inspections if i["v_id"] == ve["v_id"]] for ve in vehicles}
+
             # Append a projection of the date of the next oil change
-            for o in oils:
+            for vehicle, i in v.items():
                 # If there are no inspections just append no data array
                 if len(i) < 1:
                     i.append(["No data", "No data", "No data", "No data"])
