@@ -562,10 +562,11 @@ def edit_user():
             if u[0]["username"] == other["username"] or u[0]["email"] == other["email"]:
                 return apology("username/email already in company database")
 
-        
+        # If trying to edit the role of the owner return an apology
         if u[0]["role"] == "owner" and request.form.get("role") != "owner":
             return apology("can't change role of the owner")
 
+        # If trying to sumbit a role not supported return an apology
         if request.form.get("role") not in ["admin", "user"]:
             return apology("wrong role")
 
