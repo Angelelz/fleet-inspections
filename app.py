@@ -379,22 +379,28 @@ def inspection():
 @login_required
 def password():
     """Change Password"""
+    # If request is GET render the page
     if request.method == "GET":
         return render_template("password.html")
 
+    # If request is post (Meaning: user sumbited a password change)
     else:
+        # query DB for user
         db = sqlite3.connect(db_path)
         db.row_factory = sqlite3.Row
         user = as_dict(db.execute("SELECT * FROM users WHERE u_id = ?", [session.get("user_id")]).fetchall())
         db.close()
 
+        # Check that all inputs have data, if not, render an apology
         checks = check_inputs(request.form)
         if checks[0]:
             return apology("must provide " + checks[1])
 
+        # If password doesn't meet requierements return apology
         if check_password(request.form.get("password")):
             return apology("password does not meet requirements")
 
+        # If password and confirmation don't match return apology
         if not check_password_hash(user[0]["hash"], request.form.get("old-password")):
             return apology("Wrong password")
 
