@@ -647,12 +647,15 @@ def vehicles():
                     row[c_index][1] = c[3]
                     c_index +=1
 
-            
+            # Append every array in row to inspection variable
             for r in row:
                 inspection.append(r)
 
+        # If no inspections just create an array with no data to show in page
         if len(inspection) < 1:
             inspection = [["No data", "No data", "No data", "No data"]]
+
+        
         if request.method == "GET":
             return render_template("vehicles.html", vehicle=request.args.get("vehicle"), inspection=inspection, vehicles=v)
         else:
