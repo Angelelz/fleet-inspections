@@ -631,8 +631,6 @@ def vehicles():
 
         # itearete over every inspection
         for i in inspections:
-            # Temp variable to contain the info to be appended to inspection variable
-            row = [["No issues", "No issues", i["date"], u["username"]] for u in users if u["u_id"] == i["u_id"]]
             user = ""
             for u in users:
                 if u["u_id"] == i["u_id"]:
