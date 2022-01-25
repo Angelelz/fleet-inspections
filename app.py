@@ -749,6 +749,8 @@ def vehicles():
                     d[v["number"]]["miles"].append(i["miles"])
                     miles_oil = max(i["next_oil"], miles_oil)
                     j += 1
+            d[v["number"]]["dates"].reverse()
+            d[v["number"]]["miles"].reverse()
             # Calculate projections with al the inspections
             next_oil = best_fit(d[v["number"]]["dates"], d[v["number"]]["miles"], miles_oil)
             if next_oil != 0:
