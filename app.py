@@ -655,14 +655,15 @@ def vehicles():
         if len(inspection) < 1:
             inspection = [["No data", "No data", "No data", "No data"]]
 
-        
+        # If request is get just pass the data to render the template, otherwise jsonify data for javascript
         if request.method == "GET":
             return render_template("vehicles.html", vehicle=request.args.get("vehicle"), inspection=inspection, vehicles=v)
         else:
             return jsonify(inspection)
 
-
+    # If request is GET render the page
     if request.method == "GET":
+        # If vehicle is not in get request
         if not request.args.get("vehicle"):
             db = sqlite3.connect(db_path)
             db.row_factory = sqlite3.Row
