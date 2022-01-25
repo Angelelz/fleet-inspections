@@ -723,16 +723,21 @@ def vehicles():
 
         # Create the data for the graphs for all vehicles including projections
         graph_data = []
+        # Iterate over every vehicle
         for v in vehicles:
+            # Dictionary of dates and miles for the vehicle
             d = {v["number"]:{"dates":[],"miles":[]}}
             miles_oil = 0
+            # Iterate over every inspection
             for i in inspections:
+                # If current inspection corresponds to the current vehicle append date and miles of this inspection
                 if i["v_id"] == v["v_id"]:
                     d1 = datetime.datetime.strptime(i["date"], '%Y-%m-%d')
                     d2 = datetime.datetime.strptime("1970-01-01", '%Y-%m-%d')
                     d[v["number"]]["dates"].append((d1 - d2)/datetime.timedelta(milliseconds=1))
                     d[v["number"]]["miles"].append(i["miles"])
                     miles_oil = max(i["next_oil"], miles_oil)
+            # Calculate projections with al the inspections
             next_oil = best_fit(d[v["number"]]["dates"], d[v["number"]]["miles"], miles_oil)
             if next_oil != 0:
                 d[v["number"]]["dates"].append(next_oil)
