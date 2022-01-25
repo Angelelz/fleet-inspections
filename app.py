@@ -602,7 +602,7 @@ def edit_user():
 def vehicles():
     """View Vehicles"""
 
-    def get_inspections(method, request_arg):
+    def get_inspections(request_arg):
         """Get inspections from database"""
         db = sqlite3.connect(db_path)
         db.row_factory = sqlite3.Row
@@ -634,7 +634,7 @@ def vehicles():
 
         if len(inspection) < 1:
             inspection = [["No data", "No data", "No data", "No data"]]
-        if method == "GET":
+        if request.method == "GET":
             return render_template("vehicles.html", vehicle=request.args.get("vehicle"), inspection=inspection, vehicles=v)
         else:
             return jsonify(inspection)
@@ -671,9 +671,9 @@ def vehicles():
 
             return render_template("vehicles.html", vehicles=v)
         else:
-            return get_inspections(request.method, request.args)
+            return get_inspections(request.args)
     elif request.form:
-        return get_inspections(request.method, request.form)
+        return get_inspections(request.form)
     else:
         db = sqlite3.connect(db_path)
         db.row_factory = sqlite3.Row
