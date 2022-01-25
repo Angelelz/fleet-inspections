@@ -642,13 +642,12 @@ def vehicles():
                 # If the inspection has this issue flagged append a new array to row and update its descriptions
                 if i[c[0]] == 0:
                     if c_index != 0:
-                        r = row[c_index - 1]
-                        row.append(["a", "b", "c", "b"])
+                        a = row[c_index - 1][2]
+                        b = row[c_index - 1][3]
+                        row.append(["", "", a, b])
                     row[c_index][0] = i[c[1]]
                     row[c_index][1] = c[3]
-                    print(row)
                     c_index += 1
-                    print(c_index)
 
 
             # Append every array in row to inspection variable
