@@ -643,12 +643,10 @@ def vehicles():
                 if i[c[0]] == 0:
                     if c_index != 0:
                         row.append(row[c_index - 1])
-                    print(row)
                     row[c_index][0] = i[c[1]]
-                    print(row)
                     row[c_index][1] = c[3]
                     c_index += 1
-                    print(row)
+
 
             # Append every array in row to inspection variable
             for r in row:
