@@ -664,8 +664,9 @@ def vehicles():
             #vehicles = as_dict(db.execute("SELECT * FROM vehicles WHERE c_id = ? ORDER BY (number + 0)", [session.get("c_id")]).fetchall())
             #inspections = as_dict(db.execute("SELECT * FROM inspections WHERE c_id = ? ORDER BY date DESC", [session.get("c_id")]).fetchall())
             oils = as_dict(db.execute('''SELECT vehicles.number, inspections.next_oil, inspections.miles, inspections.date
-                                        WHERE vehicles.c_id = ? AND inspections.c_id = ? AND inspections.v_id = vehicles.v_id
-                                        ORDER BY inspections.date DESC, (number + 0) ASC'''))
+                                        FROM vehicles, inspections WHERE vehicles.c_id = ? AND inspections.c_id = ? AND
+                                        inspections.v_id = vehicles.v_id ORDER BY inspections.date DESC, (vehicles.number + 0) ASC''',
+                                        [session.get("c_id"), session.get("c_id")]).fetchall())
             db.close()
 
             # Fancy way of creating a dictionary with the vehicles as keys and a list of inspections as values
