@@ -604,15 +604,19 @@ def vehicles():
 
     def get_inspections(request_arg):
         """Get inspections from database"""
-        #
+        # Get the vehicle from DB
         db = sqlite3.connect(db_path)
         db.row_factory = sqlite3.Row
         vehicle = as_dict(db.execute("SELECT * FROM vehicles WHERE c_id = ? AND number = ?",
                                 [session.get("c_id"), request_arg.get("vehicle")]).fetchall())
+
+        # If vehicle submited not in database redirect to vehicles
         if len(vehicle) != 1:
             db.close()
             return redirect("/vehicles")
-        v = as_dict(db.execute("SELECT * FROM vehicles WHERE c_id = ? ORDER BY number",
+
+        # Get
+        v = as_dict(db.execute("SELECT * FROM vehicles WHERE c_id = ? ORDER BY (number + 0)",
                                 [session.get("c_id")]).fetchall())
         inspections = as_dict(db.execute("SELECT * FROM inspections WHERE c_id = ? AND v_id = ? ORDER BY date DESC, i_id DESC LIMIT ?",
                                             [session.get("c_id"), vehicle[0]["v_id"], MAX_INSPECTIONS]).fetchall())
