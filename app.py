@@ -335,28 +335,29 @@ def inspection():
             return apology("must provide " + checks[1])
 
         # Create the DB query dinamically depending on the data sumbited
-        # 
+        # query will always start the same way
         query = "INSERT INTO inspections (c_id, u_id, v_id, miles, next_oil, date"
-        cols = ""
+
+        # values will be
         values = "(?, ?, ?, ?, ?, ?"
         vars = [session.get("c_id"), session.get("user_id"),
                 request.form.get("v"), request.form.get("miles"),
                 request.form.get("maintenance"), request.form.get("date")]
         for d in c1:
             if request.form.get(d[0]):
-                cols += ", " + d[0]
+                query += ", " + d[0]
                 values += ", ?"
                 vars.append(request.form.get(d[0]))
             if request.form.get(d[1]):
-                cols += ", " + d[1]
+                query += ", " + d[1]
                 values += ", ?"
                 vars.append(request.form.get(d[1]))
             if request.form.get(d[2]):
-                cols += ", " + d[2]
+                query += ", " + d[2]
                 values += ", ?"
                 vars.append(request.form.get(d[2]))
 
-        query += cols + ") VALUES" + values + ")"
+        query += ") VALUES" + values + ")"
         db = sqlite3.connect(db_path)
         db.execute(query, vars)
         db.commit()
