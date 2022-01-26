@@ -68,8 +68,14 @@ canvas.drawing, canvas.drawingBuffer {
         display: none;
     }
 }
-/*
-#index-users {
-    width: var(--my-width);
+
+#scanner-container {
+    position: relative;
+    margin-left: auto;
+    margin-right: auto;
+    display: none;
 }
-/* var(--my-width) */
+video, canvas {
+    width: 100%;
+    max-width: 95vw;
+}
