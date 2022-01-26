@@ -244,11 +244,10 @@ def add_vehicle():
             flash('Database: Error adding vehicle, contact support', 'error')
             return redirect("/")
         else:
-        db.close()
-
-        # Redirect to home
-        flash('Vehicle added!')
-        return redirect("/")
+            # Redirect to home
+            db.close()
+            flash('Vehicle added!')
+            return redirect("/")
 
 @app.route("/add-user", methods=["GET", "POST"])
 @login_required
