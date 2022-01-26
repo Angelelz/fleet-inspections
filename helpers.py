@@ -58,7 +58,7 @@ def as_dict(rows):
     return list(map(dict,rows))
 
 def check_inputs(obj, array = [], ignore = True):
-    '''Check if the inputs are blank'''
+    '''Check if the inputs are blank or none with the option to pass in an array to either ignore or enforce only'''
     for key in obj.keys():
         if ignore:
             if  key not in array and (not obj.get(key) or obj.get(key) == ""):
