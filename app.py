@@ -27,23 +27,21 @@ Session(app)
 # Database Name
 db_path = "./fleets.db"
 db = sqlite3.connect(db_path)
-try:
-    with db:
-        db.execute('''CREATE TABLE IF NOT EXISTS companys
-                       (id INTEGER PRIMARY KEY, name TEXT UNIQUE NOT NULL,
-                       show_name TEXT, owner TEXT NOT NULL)''')
-        db.execute('''CREATE TABLE IF NOT EXISTS users
-                       (u_id INTEGER PRIMARY KEY, c_id INTEGER NOT NULL,
-                       username TEXT NOT NULL, email TEXT NOT NULL,
-                       hash TEXT NOT NULL, role TEXT NOT NULL, FOREIGN KEY (c_id)
-                       REFERENCES companys (id) ON DELETE CASCADE ON UPDATE NO ACTION)''')
-        db.execute('''CREATE TABLE IF NOT EXISTS vehicles
-                       (v_id INTEGER PRIMARY KEY, c_id INTEGER NOT NULL,
-                       make TEXT NOT NULL, model TEXT NOT NULL,
-                       year TEXT NOT NULL, number TEXT NOT NULL, vin TEXT UNIQUE NOT NULL,
-                       tag TEXT, FOREIGN KEY (c_id) REFERENCES companys (id) ON DELETE CASCADE
-                       ON UPDATE NO ACTION)''')
-        db.execute(ins)
+db.execute('''CREATE TABLE IF NOT EXISTS companys
+               (id INTEGER PRIMARY KEY, name TEXT UNIQUE NOT NULL,
+               show_name TEXT, owner TEXT NOT NULL)''')
+db.execute('''CREATE TABLE IF NOT EXISTS users
+               (u_id INTEGER PRIMARY KEY, c_id INTEGER NOT NULL,
+               username TEXT NOT NULL, email TEXT NOT NULL,
+               hash TEXT NOT NULL, role TEXT NOT NULL, FOREIGN KEY (c_id)
+               REFERENCES companys (id) ON DELETE CASCADE ON UPDATE NO ACTION)''')
+db.execute('''CREATE TABLE IF NOT EXISTS vehicles
+               (v_id INTEGER PRIMARY KEY, c_id INTEGER NOT NULL,
+               make TEXT NOT NULL, model TEXT NOT NULL,
+               year TEXT NOT NULL, number TEXT NOT NULL, vin TEXT UNIQUE NOT NULL,
+               tag TEXT, FOREIGN KEY (c_id) REFERENCES companys (id) ON DELETE CASCADE
+               ON UPDATE NO ACTION)''')
+db.execute(ins)
 db.commit()
 db.close()
 
