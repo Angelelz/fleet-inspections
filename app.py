@@ -121,19 +121,18 @@ def register():
         try:
             with db:
                 cid = db.execute("INSERT INTO companys (name, owner) VALUES(?, ?)", (company, name)).lastrowid
+                db.execute("INSERT INTO users (c_id, username, email, hash, role) VALUES(?, ?, ?, ?, ?)",
+                            (cid, name, email, hashed_password, "owner"))
         except:
-            db.close
+            # If there was an error flash the user
+            db.close()
+            flash('Error registering Company/User, contact support', 'error')
+            return render_template("login.html")
         else:
-            try:
-                
-        db.execute("INSERT INTO users (c_id, username, email, hash, role) VALUES(?, ?, ?, ?, ?)",
-                    (cid, name, email, hashed_password, "owner"))
-        db.commit()
-        db.close()
-
-        # Flask confirmation and redirect to login page
-        flash('Company/User registered')
-        return render_template("login.html")
+            # Flask confirmation and redirect to login page
+            db.close()
+            flash('Company/User registered')
+            return render_template("login.html")
 
 @app.route("/login", methods=["GET", "POST"])
 def login():
