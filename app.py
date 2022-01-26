@@ -297,7 +297,10 @@ def add_user():
             with db:
                 db.execute("INSERT INTO users (c_id, username, email, hash, role) VALUES(?, ?, ?, ?, ?)", user)
         except:
-            
+            # If there was an error flash the user
+            db.close()
+            flash('Error adding user, contact support', 'error')
+            return redirect("/")
         db.commit()
         db.close()
 
