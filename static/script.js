@@ -24,14 +24,14 @@ switch (window.location.pathname) {
                     // Check if the media query is true
                     if (e.matches) {
                         var tds = document.getElementsByClassName("email-tohide");
-                        tds.forEach(function(td) {
+                        [...tds].forEach(function(td) {
                             td.style.display = "none"
                         });
                         document.getElementById("head-to-hide").style.display = "none";
                     }
                     else {
                         var tds = document.getElementsByClassName("email-tohide");
-                        tds.forEach(function(td) {
+                        [...tds].forEach(function(td) {
                             td.style.display = "table-cell"
                         });
                         document.getElementById("head-to-hide").style.display = "table-cell";
