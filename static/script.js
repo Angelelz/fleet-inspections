@@ -6,13 +6,17 @@ switch (window.location.pathname) {
         window.onload = function() {
             let root = document.documentElement;
             var table = document.getElementById('index-users');
+            // Make sure the table exists
             if (table) {
+                // Calculate table minimum width by setting its width to 1px,
+                // measuring width and changing it back to original size
                 var originalWidth = table.style.width;
                 table.style.width = '1px';
                 const smallestWidth = table.getBoundingClientRect().width + 24;
                 table.style.width = originalWidth;
                 smalestWidthText = "(max-width: " + Math.floor(smallestWidth) + "px)";
 
+                //
                 var x = window.matchMedia(smalestWidthText);
 
                 function handleTabletChange(e) {
