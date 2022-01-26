@@ -7,6 +7,7 @@ from werkzeug.security import check_password_hash, generate_password_hash
 
 from helpers import apology, login_required, check_password, as_dict, permissions_required, check_inputs, best_fit
 from large_tables import ins, c1
+# Make this changeable?
 MAX_INSPECTIONS = 8
 
 # Configure application
