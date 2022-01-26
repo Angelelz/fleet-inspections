@@ -2,7 +2,7 @@ switch (window.location.pathname) {
     // If page is index
     case "/": {
         // Just need to make sure tables fit in width of screen
-        // To do that, calculate minimum width of users' table and set media query
+        // To do that, calculate minimum width of users' table and set media query to max-width: that minimum width
         window.onload = function() {
             let root = document.documentElement;
             var table = document.getElementById('index-users');
