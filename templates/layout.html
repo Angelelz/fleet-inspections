@@ -77,15 +77,19 @@
 
         {% if get_flashed_messages(true, ['message']) %}
             <header>
-                <div class="alert alert-success mb-0 text-center" role="alert">
-                    {{ get_flashed_messages(true, ['message'])[0][1] }}
+                <div class="alert alert-info mb-0 text-center" role="alert">
+                    {% for m in get_flashed_messages(true, ['message']) %}
+                        {{ m[1] + " " }}
+                    {% endfor %}
                 </div>
             </header>
         {% endif %}
         {% if get_flashed_messages(true, ['error']) %}
             <header>
                 <div class="alert alert-danger mb-0 text-center" role="alert">
-                    {% for {{ get_flashed_messages(true, ['error'])[0][1] }}
+                    {% for m in get_flashed_messages(true, ['error']) %}
+                        {{ m[1] + " " }}
+                    {% endfor %}
                 </div>
             </header>
         {% endif %}
