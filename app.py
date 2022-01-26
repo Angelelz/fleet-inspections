@@ -126,7 +126,7 @@ def register():
         except:
             # If there was an error flash the user
             db.close()
-            flash('Error registering Company/User, contact support', 'error')
+            flash('Database: Error registering Company/User, contact support', 'error')
             return render_template("login.html")
         else:
             # Flask confirmation and redirect to login page
@@ -307,8 +307,6 @@ def add_user():
             flash('User added')
             return redirect("/")
 
-
-
 @app.route("/inspection", methods=["GET", "POST"])
 @login_required
 def inspection():
@@ -445,7 +443,7 @@ def password():
         except:
             # If there was an error flash the user
             db.close()
-            flash('Error changing password, contact support', 'error')
+            flash('Database: Error changing password, contact support', 'error')
             return redirect("/")
         else:
             # Flask confirmation and redirect to home
@@ -527,7 +525,7 @@ def edit_vehicle():
         except:
             # If the was an error flash the user
             db.close()
-            flash('Error editing vehicle, contact support', 'error')
+            flash('Database: Error editing vehicle, contact support', 'error')
             return redirect("/")
         else:
             # Flash the user the confimation and redirect to home
@@ -630,7 +628,7 @@ def edit_user():
         except:
             # If there was an error flash the user
             db.close()
-            flash('Error editing user, contact support', 'error')
+            flash('Database: Error editing user, contact support', 'error')
             return redirect("/")
         else:
             # Redirect to home
