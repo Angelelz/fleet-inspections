@@ -72,6 +72,7 @@ switch (window.location.pathname) {
             const OFFSET = new Date().getTimezoneOffset() * 60000;
             let input = document.querySelector('select');
             if (input) {
+                // Add event listener to the select to change the graph
                 input.addEventListener('change', async function(e) {
 
                     var url = new URL(window.location.href);
