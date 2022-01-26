@@ -121,6 +121,8 @@ def register():
         try:
             with db:
                 cid = db.execute("INSERT INTO companys (name, owner) VALUES(?, ?)", (company, name)).lastrowid
+        except:
+            db.close
         db.execute("INSERT INTO users (c_id, username, email, hash, role) VALUES(?, ?, ?, ?, ?)",
                     (cid, name, email, hashed_password, "owner"))
         db.commit()
