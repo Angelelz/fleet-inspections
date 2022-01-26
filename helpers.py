@@ -58,7 +58,8 @@ def as_dict(rows):
     return list(map(dict,rows))
 
 def check_inputs(obj, array = [], ignore = True):
-    '''Check if the inputs are blank or none with the option to pass in an array to either ignore or enforce only'''
+    '''Check if the inputs are blank or none with the option to pass
+        in an array to either ignore or to just enforce the ones provided'''
     for key in obj.keys():
         if ignore:
             if  key not in array and (not obj.get(key) or obj.get(key) == ""):
@@ -71,6 +72,7 @@ def check_inputs(obj, array = [], ignore = True):
 
 
 def best_fit(X, Y, y):
+    """Calculate the best fit line for """
     if len(X) == 0 or len(Y) == 0 or not y:
         return 0
     xbar = sum(X)/len(X)
