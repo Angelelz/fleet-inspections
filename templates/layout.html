@@ -78,7 +78,7 @@
         {% if get_flashed_messages(true, ['message']) %}
             <header>
                 <div class="alert alert-success mb-0 text-center" role="alert">
-                    {{ get_flashed_messages(true, ['message'])[1] | join(" ") }}
+                    {{ get_flashed_messages(true, ['message'])[0][1] }}
                 </div>
             </header>
         {% endif %}
