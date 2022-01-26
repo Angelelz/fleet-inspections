@@ -77,7 +77,7 @@
 
         {% if get_flashed_messages(true, ['message']) %}
             <header>
-                <div class="alert alert-info mb-0 text-center" role="alert">
+                <div class="alert alert-primary mb-0 text-center" role="alert">
                     {% for m in get_flashed_messages(true, ['message']) %}
                         {{ m[1] + " " }}
                     {% endfor %}
