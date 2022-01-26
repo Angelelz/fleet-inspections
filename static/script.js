@@ -50,6 +50,7 @@ switch (window.location.pathname) {
     }
     // If page is inspection
     case "/inspection": {
+        // Show or hide input field depending on the radio selection
         function showHide(obj) {
             radio = document.getElementById(obj.name);
             if (radio.checked) {
@@ -61,9 +62,10 @@ switch (window.location.pathname) {
         }
         break;
     }
-
+    // If page is vehicles (graph using chart.js)
     case "/vehicles": {
         window.onload = function () {
+            // Global constants
             var myChart;
             const OPTIONS = { year: 'numeric', month: 'short', day: 'numeric' };
             const TODAY = Date.parse(Date());
