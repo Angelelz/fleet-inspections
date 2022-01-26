@@ -241,9 +241,9 @@ def add_vehicle():
         except:
             # If there was an error flash the user
             db.close()
-            flash('Error changing password, contact support', 'error')
+            flash('Database: Error adding vehicle, contact support', 'error')
             return redirect("/")
-        db.commit()
+        else:
         db.close()
 
         # Redirect to home
