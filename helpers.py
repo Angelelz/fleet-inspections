@@ -54,9 +54,11 @@ def check_password(password):
         return True
 
 def as_dict(rows):
+    '''Return a list of dictionaries to be user to query the db'''
     return list(map(dict,rows))
 
 def check_inputs(obj, array = [], ignore = True):
+    '''Check if the inputs are blank'''
     for key in obj.keys():
         if ignore:
             if  key not in array and (not obj.get(key) or obj.get(key) == ""):
