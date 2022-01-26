@@ -1,3 +1,4 @@
+console.log(window.location.pathname);
 window.onload = function () {
     var myChart;
     const OPTIONS = { year: 'numeric', month: 'short', day: 'numeric' };
