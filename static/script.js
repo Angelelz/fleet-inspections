@@ -16,9 +16,10 @@ switch (window.location.pathname) {
                 table.style.width = originalWidth;
                 smalestWidthText = "(max-width: " + Math.floor(smallestWidth) + "px)";
 
-                //
+                // Create a match media object with the max-width
                 var x = window.matchMedia(smalestWidthText);
 
+                // Function to check width of window and hide/show table rows accordingly
                 function handleTabletChange(e) {
                     // Check if the media query is true
                     if (e.matches) {
