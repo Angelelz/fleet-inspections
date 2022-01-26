@@ -235,7 +235,14 @@ def add_vehicle():
             return apology("A vehicle with that VIN already exists in the company database")
 
         # Insert Vehicle into database
-        db.execute("INSERT INTO vehicles (c_id, make, model, year, number, vin, tag) VALUES(?, ?, ?, ?, ?, ?, ?)", vehicle)
+        try:
+            with db:
+                db.execute("INSERT INTO vehicles (c_id, make, model, year, number, vin, tag) VALUES(?, ?, ?, ?, ?, ?, ?)", vehicle)
+        except:
+            # If there was an error flash the user
+            db.close()
+            flash('Error changing password, contact support', 'error')
+            return redirect("/")
         db.commit()
         db.close()
 
