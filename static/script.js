@@ -24,7 +24,7 @@ switch (window.location.pathname) {
                     // Check if the media query is true
                     if (e.matches) {
                         var tds = document.getElementsByClassName("email-tohide");
-
+                        tds.forEach()
                         for (var i = 0; i < tds.length; ++i) {
                             tds[i].style.display = "none";
                         }
