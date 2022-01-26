@@ -299,14 +299,15 @@ def add_user():
         except:
             # If there was an error flash the user
             db.close()
-            flash('Error adding user, contact support', 'error')
+            flash('Database: Error adding user, contact support', 'error')
             return redirect("/")
-        db.commit()
-        db.close()
+        else:
+            # Redirect to home
+            db.close()
+            flash('User added')
+            return redirect("/")
 
-        # Redirect to home
-        flash('User added')
-        return redirect("/")
+
 
 @app.route("/inspection", methods=["GET", "POST"])
 @login_required
