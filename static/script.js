@@ -36,5 +36,21 @@ switch (window.location.pathname) {
             }
 
         }
+        break;
     }
+
+    case "/inspection": {
+        function showHide(obj) {
+            radio = document.getElementById(obj.name);
+            if (radio.checked) {
+                document.getElementById(obj.name + "_t").style = "visibility: visible;";
+            }
+            else {
+                document.getElementById(obj.name + "_t").style = "visibility: hidden;";
+            }
+        }
+        break;
+    }
+
+    case "
 }

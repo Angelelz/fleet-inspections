@@ -1,16 +1,6 @@
 {% extends "layout.html" %}
 {% block head %}
-<script>
-    function showHide(obj) {
-        radio = document.getElementById(obj.name);
-        if (radio.checked) {
-            document.getElementById(obj.name + "_t").style = "visibility: visible;";
-        }
-        else {
-            document.getElementById(obj.name + "_t").style = "visibility: hidden;";
-        }
-    }
-</script>
+<script src="./static/script.js"></script>
 
 {% endblock %}
 
