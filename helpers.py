@@ -72,7 +72,7 @@ def check_inputs(obj, array = [], ignore = True):
 
 
 def best_fit(X, Y, y):
-    """Calculate the best fit line for """
+    """Calculate the best fit line for a set of point (X, Y) and returns the corresponding value x for the y provided"""
     if len(X) == 0 or len(Y) == 0 or not y:
         return 0
     xbar = sum(X)/len(X)
