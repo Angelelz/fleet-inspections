@@ -1,4 +1,5 @@
 switch (window.location.pathname) {
+    // If page is index
     case "/": {
         window.onload = function() {
             let root = document.documentElement;
