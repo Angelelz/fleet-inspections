@@ -389,14 +389,19 @@ def inspection():
 
         # Submit the quiery to the database
         db = sqlite3.connect(db_path)
-        db.execute(query, vars)
-        db.commit()
-        db.close()
-
-        # Confirm to the user and redirect to home
-        flash('Inspection loaded into database!')
-        return redirect("/")
-
+        try:
+            with db:
+                db.execute(query, vars)
+        except:
+            # If there was an error flash the user
+            db.close()
+            flash('Database: Error adding inspection, contact support', 'error')
+            return redirect("/")
+        else:
+            # Confirm to the user and redirect to home
+            db.close()
+            flash('Inspection loaded into database!')
+            return redirect("/")
 
 @app.route("/password", methods=["GET", "POST"])
 @login_required
