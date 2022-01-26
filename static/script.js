@@ -1,0 +1,3 @@
+switch (window.location.pathname) {
+    
+}
