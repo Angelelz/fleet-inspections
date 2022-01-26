@@ -400,7 +400,7 @@ def inspection():
         else:
             # Confirm to the user and redirect to home
             db.close()
-            flash('Inspection loaded into database!')
+            flash('Inspection added!')
             return redirect("/")
 
 @app.route("/password", methods=["GET", "POST"])
