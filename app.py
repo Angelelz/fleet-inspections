@@ -293,7 +293,11 @@ def add_user():
             return apology("Username/Email already exists in the company database")
 
         # Insert user into DB
-        db.execute("INSERT INTO users (c_id, username, email, hash, role) VALUES(?, ?, ?, ?, ?)", user)
+        try:
+            with db:
+                db.execute("INSERT INTO users (c_id, username, email, hash, role) VALUES(?, ?, ?, ?, ?)", user)
+        except:
+            
         db.commit()
         db.close()
 
