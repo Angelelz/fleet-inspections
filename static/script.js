@@ -26,17 +26,14 @@ switch (window.location.pathname) {
                         var tds = document.getElementsByClassName("email-tohide");
                         tds.forEach(function(td) {
                             td.style.display = "none"
-                        })
-                        for (var i = 0; i < tds.length; ++i) {
-                            tds[i].style.display = "none";
-                        }
+                        });
                         document.getElementById("head-to-hide").style.display = "none";
                     }
                     else {
                         var tds = document.getElementsByClassName("email-tohide");
-                        for (var i = 0; i < tds.length; ++i) {
-                            tds[i].style.display = "table-cell";
-                        }
+                        tds.forEach(function(td) {
+                            td.style.display = "table-cell"
+                        });
                         document.getElementById("head-to-hide").style.display = "table-cell";
                     }
                 }
