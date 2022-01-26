@@ -21,15 +21,18 @@ switch (window.location.pathname) {
 
                 // Function to check width of window and hide/show table rows accordingly
                 function handleTabletChange(e) {
-                    // Check if the media query is true
+                    // If the media query is true
                     if (e.matches) {
+                        // Hide columns
                         var tds = document.getElementsByClassName("email-tohide");
                         [...tds].forEach(function(td) {
                             td.style.display = "none"
                         });
                         document.getElementById("head-to-hide").style.display = "none";
                     }
+                    // If screen is wide enough
                     else {
+                        // Show columns
                         var tds = document.getElementsByClassName("email-tohide");
                         [...tds].forEach(function(td) {
                             td.style.display = "table-cell"
@@ -37,7 +40,7 @@ switch (window.location.pathname) {
                         document.getElementById("head-to-hide").style.display = "table-cell";
                     }
                 }
-
+                // Add event listener and execute for first time on load
                 x.addListener(handleTabletChange);
                 handleTabletChange(x);
             }
@@ -45,7 +48,7 @@ switch (window.location.pathname) {
         }
         break;
     }
-
+    // If page is inspection
     case "/inspection": {
         function showHide(obj) {
             radio = document.getElementById(obj.name);
