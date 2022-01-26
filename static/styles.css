@@ -33,38 +33,32 @@ canvas.drawing, canvas.drawingBuffer {
     top: 0;
 }
 
-@media screen and (max-width: 670px) {
+@media screen and (max-width: 690px) {
     #index-vehicles th:nth-child(3), #index-vehicles td:nth-child(3) {
         display: none;
     }
 }
 
-@media screen and (max-width: 600px) {
+@media screen and (max-width: 620px) {
     #index-vehicles th:nth-child(2), #index-vehicles td:nth-child(2) {
         display: none;
     }
 }
 
-@media screen and (max-width: 540px) {
+@media screen and (max-width: 560px) {
     #index-vehicles th:nth-child(1), #index-vehicles td:nth-child(1) {
         display: none;
     }
 }
 
-@media screen and (max-width: 500px) {
+@media screen and (max-width: 520px) {
     #index-vehicles th:nth-child(5), #index-vehicles td:nth-child(5) {
         display: none;
     }
 }
 
-@media screen and (max-width: 410px) {
+@media screen and (max-width: 430px) {
     #index-vehicles th:nth-child(6), #index-vehicles td:nth-child(6) {
-        display: none;
-    }
-}
-
-@media screen and (max-width: var(--my-width)) {
-    #index-users th:nth-child(2), #index-users td:nth-child(2) {
         display: none;
     }
 }
