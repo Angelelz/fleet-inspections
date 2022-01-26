@@ -118,7 +118,9 @@ def register():
         # Insert company and user into database with current user as owner
         hashed_password = generate_password_hash(request.form.get("password"))
         db = sqlite3.connect(db_path)
-        cid = db.execute("INSERT INTO companys (name, owner) VALUES(?, ?)", (company, name)).lastrowid
+        try:
+            with db:
+                cid = db.execute("INSERT INTO companys (name, owner) VALUES(?, ?)", (company, name)).lastrowid
         db.execute("INSERT INTO users (c_id, username, email, hash, role) VALUES(?, ?, ?, ?, ?)",
                     (cid, name, email, hashed_password, "owner"))
         db.commit()
