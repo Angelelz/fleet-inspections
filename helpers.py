@@ -6,8 +6,9 @@ from functools import wraps
 
 
 def apology(message, code=400):
+    
     """Render message as an apology to user."""
-    def escape(s):
+    '''def escape(s):
         """
         Escape special characters.
 
@@ -17,7 +18,7 @@ def apology(message, code=400):
                          ("%", "~p"), ("#", "~h"), ("/", "~s"), ("\"", "''")]:
             s = s.replace(old, new)
         return s
-    return render_template("apology.html", top=code, bottom=escape(message)), code
+    return render_template("apology.html", top=code, bottom=escape(message)), code'''
 
 
 def login_required(f):
