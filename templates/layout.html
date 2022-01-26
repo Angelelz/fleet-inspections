@@ -75,17 +75,17 @@
             </div>
         </nav>
 
-        {% if get_flashed_messages(true, 'message') %}
+        {% if get_flashed_messages(true, ['message']) %}
             <header>
                 <div class="alert alert-success mb-0 text-center" role="alert">
-                    {{ get_flashed_messages(true, 'message')[1] | join(" ") }}
+                    {{ get_flashed_messages(true, ['message'])[1] | join(" ") }}
                 </div>
             </header>
         {% endif %}
-        {% if get_flashed_messages(true, 'error') %}
+        {% if get_flashed_messages(true, ['error']) %}
             <header>
                 <div class="alert alert-danger mb-0 text-center" role="alert">
-                    {{ get_flashed_messages(true, 'error')[1] | join(" ") }}
+                    {{ get_flashed_messages(true, ['error']) }}
                 </div>
             </header>
         {% endif %}
