@@ -1,5 +1,10 @@
 {% extends "layout.html" %}
 {% block head %}
+{% if vehicle is defined and vehicle %}
+    <script>
+        var jsVehicle = '{{ vehicle }}'
+    </script>
+{% endif %}
 <script src="./static/script.js"></script>
 
 {% endblock %}
@@ -27,7 +32,7 @@
         <h4>Inspecting Vehicle {{ v["number"] }}: {{ v["year"] }} {{ v["make"] }} {{ v["model"] }}</h4>
         <div style="text-align:center; max-width:1100px; margin: auto;">
         <form action="/inspection" method="post">
-        <input required autocomplete="off" class="form-control mx-auto w-auto" id="miles" name="miles" placeholder="Current Mileage" type="number">
+        <input required autocomplete="off" class="form-control mx-auto w-auto" id="miles" name="miles" {% if i and i["miles"] %} value={{ i["miles"] }} {% endif %} placeholder="Current Mileage" type="number">
         {% if oil == None %}
         <input required autocomplete="off" class="form-control mx-auto w-auto" id="maintenance" name="maintenance" placeholder="Next oil change" value="" type="number">
         {% else %}
@@ -35,18 +40,18 @@
         {% endif %}
         <table class="table table-hover table-sm"><tbody>
 
-            {% for i in inspection %}
+            {% for ins in inspection %}
                 <tr>
-                    <td style="text-align:right;">{{ i[3] }}</td>
-                    <td><input required class="form-check-input" name="{{ i[0] }}" onchange="showHide(this)" type="radio" value=1>OK</td>
-                    <td><input required class="form-check-input" id="{{ i[0] }}" name="{{ i[0] }}" onchange="showHide(this)" type="radio" value=0>Not ok</td>
-                    <td><input required class="form-check-input" name="{{ i[0] }}" onchange="showHide(this)" type="radio" value=2>N/A</td>
-                    <td><input id="{{ i[1] }}" name="{{ i[1] }}" type="text" style="visibility:hidden"></td>
+                    <td style="text-align:right;">{{ ins[3] }}</td>
+                    <td><input required {% if i and i[ins[0]] and i[ins[0]] == '1' %} checked="checked" {% endif %} class="form-check-input" name="{{ ins[0] }}" onchange="showHide(this)" type="radio" value=1>OK</td>
+                    <td><input required {% if i and i[ins[0]] and i[ins[0]] == '0' %} checked="checked" {% endif %} class="form-check-input" id="{{ ins[0] }}" name="{{ ins[0] }}" onchange="showHide(this)" type="radio" value=0>Not ok</td>
+                    <td><input required {% if i and i[ins[0]] and i[ins[0]] == '2' %} checked="checked" {% endif %} class="form-check-input" name="{{ ins[0] }}" onchange="showHide(this)" type="radio" value=2>N/A</td>
+                    <td><input {% if i and i[ins[1]] %} value={{ i[ins[1]] }} {% endif %} id="{{ ins[1] }}" name="{{ ins[1] }}" type="text" style="visibility:hidden"></td>
                 </tr>
             {% endfor %}
 
         </tbody></table>
-        <input required autocomplete="off" class="form-control mx-auto w-auto" id="date" name="date" placeholder="Date" value="{{ date }}" type="date">
+        <input required autocomplete="off" class="form-control mx-auto w-auto" id="date" name="date" placeholder="Date" {% if i and i['date'] %} value={{ i["date"] }} {% else %} value="{{ date }}" {% endif %} type="date">
         <button name="v" class="btn btn-primary" type="submit" value="{{ v["v_id"] }}" >Add Inspection</button>
         </form>
     {% endif %}

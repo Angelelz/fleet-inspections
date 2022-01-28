@@ -5,7 +5,7 @@ from flask import Flask, jsonify, flash, redirect, render_template, request, ses
 from flask_session import Session
 from werkzeug.security import check_password_hash, generate_password_hash
 
-from helpers import apology, login_required, check_password, as_dict, permissions_required, check_inputs, best_fit
+from helpers import feedback, login_required, check_password, as_dict, permissions_required, check_inputs, best_fit, to_dict
 from large_tables import ins, c1
 # Make this changeable?
 MAX_INSPECTIONS = 8
@@ -91,7 +91,7 @@ def register():
         # Check that all inputs have data, if not, render an apology
         checks = check_inputs(request.form)
         if checks[0]:
-            return apology("You have to input " + checks[1])
+            return feedback(checks[1].capitalize() + " field can't be empty", "register.html", to_dict(request.form), "r")
 
         # Set the form data to variables
         name = request.form.get("username")
@@ -106,15 +106,15 @@ def register():
 
         # If company name exists return apology
         if len(companys) > 0:
-            return apology("Company name already exists")
+            return feedback("Company name already exists", "register.html", to_dict(request.form), "r")
 
         # If password doesn't meet requierements return apology
         if check_password(request.form.get("password")):
-            return apology("password does not meet requirements")
+            return feedback("Password does not meet requirements", "register.html", to_dict(request.form), "r")
 
         # If password and confirmation don't match return apology
         if request.form.get("password") != request.form.get("confirmation"):
-            return apology("passwords don't match")
+            return feedback("Password doesn't match confirmation", "register.html", to_dict(request.form), "r")
 
         # Insert company and user into database with current user as owner
         hashed_password = generate_password_hash(request.form.get("password"))
@@ -127,13 +127,11 @@ def register():
         except:
             # If there was an error flash the user
             db.close()
-            flash('Database: Error registering Company/User, contact support', 'error')
-            return render_template("login.html")
+            feedback('Database: Error registering Company/User, contact support', "register.html", to_dict(request.form), "r")
         else:
             # Flask confirmation and redirect to login page
             db.close()
-            flash('Company/User registered')
-            return render_template("login.html")
+            feedback('Company/User registered', "login.html", type='message', code=200)
 
 @app.route("/login", methods=["GET", "POST"])
 def login():
@@ -148,7 +146,7 @@ def login():
         # Check that all inputs have data, if not, render an apology
         checks = check_inputs(request.form)
         if checks[0]:
-            return apology("must provide " + checks[1], 403)
+            return feedback("Must provide " + checks[1].capitalize(), "login.html", to_dict(request.form), "l", code=403)
 
         # Get company from database
         db = sqlite3.connect(db_path)
@@ -158,7 +156,7 @@ def login():
         # If company is not in db render an apology
         if len(company) != 1:
             db.close()
-            return apology("Company not found", 403)
+            return feedback("Company not found", "login.html", to_dict(request.form), "l", code=403)
 
         # Get user from DB
         rows = as_dict(db.execute("SELECT * FROM users WHERE username = ? AND c_id = ?", [request.form.get("username"), company[0]["id"]]).fetchall())
@@ -166,7 +164,7 @@ def login():
 
         # Ensure username exists and password is correct
         if len(rows) != 1 or not check_password_hash(rows[0]["hash"], request.form.get("password")):
-            return apology("invalid username and/or password", 403)
+            return feedback("invalid username and/or password", "login.html", to_dict(request.form), "l", code=403)
 
         # Remember which user has logged in along with company and role
         session["user_id"] = rows[0]["u_id"]
@@ -188,8 +186,7 @@ def logout():
     session.clear()
 
     # Redirect user home
-    flash('You logged out')
-    return redirect("/")
+    return feedback('You logged out', "index.html", type='message', code=200)
 
 @app.route("/add-vehicle", methods=["GET", "POST"])
 @login_required
@@ -204,14 +201,14 @@ def add_vehicle():
         # Check that all inputs have data (except tag), if not, render an apology
         checks = check_inputs(request.form, ["tag"])
         if checks[0]:
-            return apology("must provide " + checks[1])
+            return feedback("Must provide " + checks[1].capitalize(), "add-vehicle.html", to_dict(request.form), "v")
 
         # Check if year is a 4digit number, if not, render an apology
         try:
             if int(request.form.get("year")) < 1900:
-                return apology("Year must have 4 digits")
+                return feedback("Year must have 4 digits", "add-vehicle.html", to_dict(request.form), "v")
         except:
-            return apology("Year must be a 4 digits number")
+            return feedback("Year must be a 4 digits number", "add-vehicle.html", to_dict(request.form), "v")
 
         # Create an array with the form data
         vehicle = [ session.get("c_id"),
@@ -227,13 +224,13 @@ def add_vehicle():
         v = db.execute("SELECT * FROM vehicles WHERE number = ? AND c_id = ?", [request.form.get("number"), session.get("c_id")]).fetchall()
         if len(v) > 0:
             db.close()
-            return apology("A vehicle with that ID already exists in the company database")
+            return feedback("A vehicle with that ID already exists in the company database", "add-vehicle.html", to_dict(request.form), "v")
 
         # Ensure VIN is unique
         v = db.execute("SELECT * FROM vehicles WHERE vin = ?", [request.form.get("vin")]).fetchall()
         if len(v) > 0:
             db.close()
-            return apology("A vehicle with that VIN already exists in the company database")
+            return feedback("A vehicle with that VIN already exists in the company database", "add-vehicle.html", to_dict(request.form), "v")
 
         # Insert Vehicle into database
         try:
@@ -242,12 +239,11 @@ def add_vehicle():
         except:
             # If there was an error flash the user
             db.close()
-            flash('Database: Error adding vehicle, contact support', 'error')
-            return redirect("/")
+            return feedback('Database: Error adding vehicle, contact support', "add-vehicle.html", to_dict(request.form), "v")
         else:
             # Redirect to home
             db.close()
-            flash('Vehicle added!')
+            flash("Vehicle added!")
             return redirect("/")
 
 @app.route("/add-user", methods=["GET", "POST"])
@@ -264,19 +260,19 @@ def add_user():
         # Check that all inputs have data, if not, render an apology
         checks = check_inputs(request.form)
         if checks[0]:
-            return apology("must provide " + checks[1])
+            return feedback("Must provide " + checks[1].capitalize(), "add-user.html", to_dict(request.form), "u")
 
         # If password doesn't meet requierements return apology
         if check_password(request.form.get("password")):
-            return apology("password does not meet requirements")
+            return feedback("Password does not meet requirements", "add-user.html", to_dict(request.form), "u")
 
         # If password and confirmation don't match return apology
         if request.form.get("password") != request.form.get("confirmation"):
-            return apology("passwords don't match")
+            return feedback("passwords don't match", "add-user.html", to_dict(request.form), "u")
 
         # If role is not admin or user render an apology (Can only have 1 owner)
         if request.form.get("role") not in ["admin", "user"]:
-            return apology("Wrong role")
+            return feedback("Wrong role", "add-user.html", to_dict(request.form), "u")
 
         # Set the data into an array
         user = [ session.get("c_id"),
@@ -291,7 +287,7 @@ def add_user():
                          [request.form.get("username"), request.form.get("email"), session.get("c_id")]).fetchall()
         if len(v) > 0:
             db.close()
-            return apology("Username/Email already exists in the company database")
+            return feedback("Username/Email already exists in the company database", "add-user.html", to_dict(request.form), "u")
 
         # Insert user into DB
         try:
@@ -300,12 +296,11 @@ def add_user():
         except:
             # If there was an error flash the user
             db.close()
-            flash('Database: Error adding user, contact support', 'error')
-            return redirect("/")
+            return feedback('Database: Error adding user, contact support', "add-user.html", to_dict(request.form), "u")
         else:
             # Redirect to home
             db.close()
-            flash('User added')
+            flash("User added!")
             return redirect("/")
 
 @app.route("/inspection", methods=["GET", "POST"])
@@ -339,6 +334,7 @@ def inspection():
             # If no such vehicle redirect to inspection
             if len(v) != 1:
                 db.close()
+                flash('Wrong parameter', 'error')
                 return redirect("/inspection")
 
             # Get next oil change from last inspection
@@ -351,10 +347,28 @@ def inspection():
 
     # If request is post (Meaning: user sumbited an inspection)
     else:
+        # Query DB for that vehicle
+        db = sqlite3.connect(db_path)
+        db.row_factory = sqlite3.Row
+        v = as_dict(db.execute("SELECT * FROM vehicles WHERE v_id = ? AND c_id = ?",
+                                [request.form.get("v"), session.get("c_id")]).fetchall())
+        oil = db.execute("SELECT next_oil FROM inspections WHERE v_id = ? ORDER BY date DESC", [v[0]["v_id"]]).fetchone()
+        db.close()
+
         # Check that the important inputs have data, if not, render an apology
         checks = check_inputs(request.form, ["v", "miles", "maintenance", "date"], False)
         if checks[0]:
-            return apology("must provide " + checks[1])
+            return feedback("Must provide " + checks[1].capitalize(), "inspection.html", to_dict(request.form), "i", 'error', 400, 
+                                inspection=c1, vehicle=v[0]["number"], v=v[0], oil=request.form.get("maintenance"), 
+                                date=datetime.date.today().strftime('%Y-%m-%d'))
+
+        # Check inspection is complete
+        for c in c1:
+            check = check_inputs(request.form, [c[0]], False)
+            if check[0]:
+                return feedback("Must provide value for: " + c[3].capitalize(), "inspection.html", to_dict(request.form), "i", 'error', 400, 
+                                inspection=c1, vehicle=v[0]["number"], v=v[0], oil=request.form.get("maintenance"),
+                                date=datetime.date.today().strftime('%Y-%m-%d'))
 
         # Create the DB query dinamically depending on the data sumbited
         # query will always start the same way
@@ -394,12 +408,13 @@ def inspection():
         except:
             # If there was an error flash the user
             db.close()
-            flash('Database: Error adding inspection, contact support', 'error')
-            return redirect("/")
+            return feedback('Database: Error adding inspection, contact support', "inspection.html", to_dict(request.form), "i", 'error', 400, 
+                                inspection=c1, vehicle=v[0]["number"], v=v[0], oil=request.form.get("maintenance"),
+                                date=datetime.date.today().strftime('%Y-%m-%d'))
         else:
             # Confirm to the user and redirect to home
             db.close()
-            flash('Inspection added!')
+            flash("Inspection added!")
             return redirect("/")
 
 @app.route("/password", methods=["GET", "POST"])
@@ -421,19 +436,19 @@ def password():
         # Check that all inputs have data, if not, render an apology
         checks = check_inputs(request.form)
         if checks[0]:
-            return apology("must provide " + checks[1])
+            return feedback("Must provide " + checks[1].capitalize(), "password.html")
 
         # If password doesn't meet requierements return apology
         if check_password(request.form.get("password")):
-            return apology("password does not meet requirements")
+            return feedback("Password does not meet requirements", "password.html")
 
         # Ensure username exists and password is correct
         if len(user) != 1 or not check_password_hash(user[0]["hash"], request.form.get("old-password")):
-            return apology("Wrong password")
+            return feedback("Wrong password", "password.html")
 
         # If password and confirmation don't match return apology
         if request.form.get("password") != request.form.get("confirmation"):
-            return apology("password and confimation don't match")
+            return feedback("Password and confimation don't match", "password.html")
 
         # Update database with new password
         hashed_password = generate_password_hash(request.form.get("password"))
@@ -444,12 +459,11 @@ def password():
         except:
             # If there was an error flash the user
             db.close()
-            flash('Database: Error changing password, contact support', 'error')
-            return redirect("/")
+            return feedback('Database: Error changing password, contact support', "password.html")
         else:
             # Flask confirmation and redirect to home
             db.close()
-            flash('Password changed!')
+            flash("Password changed!")
             return redirect("/")
 
 
@@ -492,14 +506,17 @@ def edit_vehicle():
         # Check that all the inputs have data except for tag, if not, render an apology
         checks = check_inputs(request.form, ["tag"])
         if checks[0]:
-            return apology("must provide " + checks[1])
+            return feedback("Must provide " + checks[1].capitalize(), "edit-vehicle.html", to_dict(request.form), "v",
+                                "error", 400, vehicle=request.form.get("v"))
 
         # Check if year is a 4digit number, if not, render an apology
         try:
             if int(request.form.get("year")) < 1900:
-                return apology("Year must have 4 digits")
+                return feedback("Year must have 4 digits", "edit-vehicle.html", to_dict(request.form), "v", "error", 400,
+                                    vehicle=request.form.get("v"))
         except:
-            return apology("Year must be a 4 digits number")
+            return feedback("Year must be a 4 digits number", "edit-vehicle.html", to_dict(request.form), "v", "error",
+                                400, vehicle=request.form.get("v"))
 
         # Create an array with the form data
         vehicle = [ request.form.get("make"),
@@ -516,7 +533,8 @@ def edit_vehicle():
         # If no vehicle, return an apology
         if len(v_id) != 1:
             db.close()
-            return apology("something went wrong with that request")
+            return feedback("something went wrong with that request", "edit-vehicle.html", to_dict(request.form),
+                                "v", "error", 400, vehicle=request.form.get("v"))
 
         # Add vehicle id to the vehicle array and update the vehicle with the new data
         vehicle.append(v_id[0])
@@ -526,8 +544,8 @@ def edit_vehicle():
         except:
             # If the was an error flash the user
             db.close()
-            flash('Database: Error editing vehicle, contact support', 'error')
-            return redirect("/")
+            return feedback('Database: Error editing vehicle, contact support', "edit-vehicle.html",
+                                to_dict(request.form), "v", "error", 400, vehicle=request.form.get("v"))
         else:
             # Flash the user the confimation and redirect to home
             db.close()
@@ -555,32 +573,28 @@ def edit_user():
             else:
                 return render_template("edit-user.html", users=users)
 
-        # If vechicle is in get request
+        # If user is in get request
         else:
             # Query DB for that user and the company
             db = sqlite3.connect(db_path)
             db.row_factory = sqlite3.Row
-            u = as_dict(db.execute("SELECT * FROM users WHERE username = ?", [request.args.get("user")]).fetchall())
+            u = as_dict(db.execute("SELECT * FROM users WHERE username = ? AND c_id = ?", [request.args.get("user"), session.get("c_id")]).fetchall())
             c = as_dict(db.execute("SELECT * FROM companys WHERE id = ?", [session.get("c_id")]).fetchall())
+            users = as_dict(db.execute('''SELECT * FROM users WHERE c_id = ? AND role != "owner"''', [session.get("c_id")]).fetchall())
             db.close()
 
             # If trying to edit owner return an apology
             if c[0]["owner"] == request.args.get("user"):
-                return apology("Can't edit the owner")
+                return feedback("Can't edit the owner", "edit-user.html", users, "users")
 
             # If no such user redirect to edit-user otherwise pass the info to render the edit template for that user
             if len(u) != 1:
-                return redirect("/edit-user")
+                return feedback('No such user exists in the company', "edit-user.html", users, "users")
             else:
                 return render_template("edit-user.html", user=request.args.get("user"), u=u[0])
 
     # If request is post (Meaning: user sumbited an edit)
     else:
-        # Check that all the inputs have data except for tag, if not, render an apology
-        checks = check_inputs(request.form)
-        if checks[0]:
-            return apology("must provide " + checks[1])
-
         # Get the user and all other users from the DB
         db = sqlite3.connect(db_path)
         db.row_factory = sqlite3.Row
@@ -589,30 +603,42 @@ def edit_user():
                             [request.form.get("u"), session.get("c_id")]).fetchall())
         db.close()
 
+        # Check that all the inputs have data, if not, render an apology
+        checks = check_inputs(request.form)
+        if checks[0]:
+            return feedback("Must provide " + checks[1].capitalize(), "edit-user.html", u[0], 'u',
+                                'error', 400, user=u[0]["username"])
+
         # If user is not in DB return an apology
         if len(u) != 1:
-            return apology("something went wrong with that request")
+            return feedback("Something went wrong with that request", "edit-user.html", to_dict(request.form), 'u',
+                                'error', 400, user=request.form.get("u"))
 
         # If trying to submit a user/email that already exists return an apology
         for other in others:
             if u[0]["username"] == other["username"] or u[0]["email"] == other["email"]:
-                return apology("username/email already in company database")
+                return feedback("Username/email already in company database", "edit-user.html", to_dict(request.form), 'u',
+                                    'error', 400, user=request.form.get("u"))
 
         # If trying to edit the role of the owner return an apology
         if u[0]["role"] == "owner" and request.form.get("role") != "owner":
-            return apology("can't change role of the owner")
+            return feedback("Can't change role of the owner", "edit-user.html", to_dict(request.form), 'u',
+                                'error', 400, user=request.form.get("u"))
 
         # If trying to sumbit a role not supported return an apology
         if request.form.get("role") not in ["admin", "user"]:
-            return apology("wrong role")
+            return feedback("Wrong role", "edit-user.html", to_dict(request.form), 'u',
+                                'error', 400, user=request.form.get("u"))
 
         # If password doesn't meet requierements return apology
         if check_password(request.form.get("password")):
-            return apology("password does not meet requirements")
+            return feedback("Password does not meet requirements", "edit-user.html", to_dict(request.form), 'u',
+                                'error', 400, user=request.form.get("u"))
 
         # If password and confirmation don't match return apology
         if request.form.get("password") != request.form.get("confirmation"):
-            return apology("password and confirmation don't match")
+            return feedback("Password doesn't match confirmation", "edit-user.html", to_dict(request.form), 'u',
+                                'error', 400, user=request.form.get("u"))
 
         # Set the data into an array
         user = [ request.form.get("username"),
@@ -629,8 +655,8 @@ def edit_user():
         except:
             # If there was an error flash the user
             db.close()
-            flash('Database: Error editing user, contact support', 'error')
-            return redirect("/")
+            return feedback('Database: Error editing user, contact support', "edit-user.html", to_dict(request.form), 'u',
+                                'error', 400, user=request.form.get("u"))
         else:
             # Redirect to home
             db.close()
@@ -655,6 +681,7 @@ def vehicles():
         # If vehicle submited not in database redirect to vehicles
         if len(vehicle) != 1:
             db.close()
+            flash("Select a vehicle from the list", 'error')
             return redirect("/vehicles")
 
         # Get all the vehicles from DB

@@ -33,7 +33,7 @@
                             <td class="email-tohide">{{ users[i]["email"] }}</td>
                             <td>{{ users[i]["role"] }}</td>
                             <td><form action="/edit-user" method="get">
-                                <button name="user" class="btn btn-primary" type="submit" value="{{ users[i]["username"] }}">Edit</button>
+                                <button {% if users[i]["role"] == "owner" %} disabled {% endif %} name="user" class="btn btn-primary" type="submit" value="{{ users[i]["username"] }}">Edit</button>
                             </form></td>
                         </tr>
                         {% endfor %}

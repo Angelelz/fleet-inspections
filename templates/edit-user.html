@@ -21,7 +21,7 @@
         <button class="btn btn-primary" type="submit">Edit user</button>
     </form>
     {% else %}
-    <h4>Edit User</h4>
+    <h4>Edit User: {{ u["username"] }}</h4>
     <form action="/edit-user" method="post">
         <div class="mb-3">
             <input required value="{{ u["username"] }}" autocomplete="off" autofocus class="form-control mx-auto w-auto" id="username" name="username" placeholder="Username" type="text">

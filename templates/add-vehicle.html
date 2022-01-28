@@ -14,22 +14,22 @@
     <h4>Add a vehicle</h4>
     <form action="/add-vehicle" method="post">
         <div class="mb-3">
-            <input required autocomplete="off" autofocus class="form-control mx-auto w-auto" id="year" name="year" placeholder="Year" type="number">
+            <input required autocomplete="off" autofocus class="form-control mx-auto w-auto" id="year" name="year" {% if v and v["year"] %} value={{ v["year"] }} {% endif %} placeholder="Year" type="number">
         </div>
         <div class="mb-3">
-            <input required autocomplete="off" autofocus class="form-control mx-auto w-auto" id="make" name="make" placeholder="Make" type="text">
+            <input required autocomplete="off" autofocus class="form-control mx-auto w-auto" id="make" name="make" {% if v and v["make"] %} value={{ v["make"] }} {% endif %} placeholder="Make" type="text">
         </div>
         <div class="mb-3">
-            <input required autocomplete="off" autofocus class="form-control mx-auto w-auto" id="model" name="model" placeholder="Model" type="text">
+            <input required autocomplete="off" autofocus class="form-control mx-auto w-auto" id="model" {% if v and v["model"] %} value={{ v["model"] }} {% endif %} name="model" placeholder="Model" type="text">
         </div>
         <div class="mb-3">
-            <input required autocomplete="off" autofocus class="form-control mx-auto w-auto" id="number" name="number" placeholder="Vehicle ID" type="text">
+            <input required autocomplete="off" autofocus class="form-control mx-auto w-auto" id="number" {% if v and v["number"] %} value={{ v["number"] }} {% endif %} name="number" placeholder="Vehicle ID" type="text">
         </div>
         <div class="mb-3">
-            <input autocomplete="off" autofocus class="form-control mx-auto w-auto" id="tag" name="tag" placeholder="Vehicle tag" type="text">
+            <input autocomplete="off" autofocus class="form-control mx-auto w-auto" id="tag" {% if v and v["tag"] %} value={{ v["tag"] }} {% endif %} name="tag" placeholder="Vehicle tag" type="text">
         </div>
         <div class="mb-3">
-            <input required autocomplete="off" autofocus class="form-control mx-auto w-auto" id="vin" name="vin" placeholder="VIN" type="text">
+            <input required autocomplete="off" autofocus class="form-control mx-auto w-auto" id="vin" {% if v and v["vin"] %} value={{ v["vin"] }} {% endif %} name="vin" placeholder="VIN" type="text">
         </div>
         <button class="btn btn-primary" type="submit">Add</button>
         <input class="btn btn-primary" type="button" id="btn" value="Start/Stop the scanner" />

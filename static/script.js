@@ -41,7 +41,7 @@ switch (window.location.pathname) {
                     }
                 }
                 // Add event listener and execute for first time on load
-                x.addListener(handleTabletChange);
+                x.addEventListener('change', handleTabletChange);
                 handleTabletChange(x);
             }
 
@@ -58,6 +58,17 @@ switch (window.location.pathname) {
             }
             else {
                 document.getElementById(obj.name + "_t").style = "visibility: hidden;";
+            }
+        }
+        if (typeof jsVehicle !== 'undefined') {
+            history.pushState(null, document.title, "/inspection?vehicle=" + jsVehicle);
+            window.onload = function () {
+                radios = document.getElementsByClassName("form-check-input");
+                for (let i in radios) {
+                    if (radios[i].id && radios[i].checked) {
+                        showHide(document.getElementById(radios[i].id));
+                    }
+                }
             }
         }
         break;

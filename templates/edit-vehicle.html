@@ -1,10 +1,5 @@
 {% extends "layout.html" %}
 
-{% block head %}
-    <script src="https://cdn.rawgit.com/serratus/quaggaJS/0420d5e0/dist/quagga.min.js"></script>
-    <script src="./static/scripts.js"></script>
-{% endblock %}
-
 {% block title %}
     Edit vehicle
 {% endblock %}
@@ -24,7 +19,7 @@
         <button class="btn btn-primary" type="submit">Edit vehicle</button>
     </form>
     {% else %}
-    <h4>Edit a Vehicle</h4>
+    <h4>Edit a Vehicle: {{ v["number"] }}</h4>
     <form action="/edit-vehicle" method="post">
         <div class="mb-3">
             <input required value="{{ v["year"] }}" autocomplete="off" autofocus class="form-control mx-auto w-auto" id="year" name="year" placeholder="Year" type="number">
@@ -45,8 +40,6 @@
             <input disabled value="{{ v["vin"] }}" autocomplete="off" class="form-control mx-auto w-auto" placeholder="VIN" type="text">
         </div>
         <button name="v" value="{{ vehicle }}" class="btn btn-primary" type="submit">Edit</button>
-        <div id="scanner-container" style="position: relative; width: 1280px; height: 860px; margin-left: auto; margin-right: auto; display: none;"></div>
-        <input type="button" id="btn" value="Start/Stop the scanner" />
     </form>
     {% endif %}
 {% endblock %}
