@@ -1,4 +1,4 @@
-/flask_session/
-/__pycache__/
+fleet-inspections/flask_session/
+fleet-inspections/__pycache__/
 /venv/
 /.vscode/
