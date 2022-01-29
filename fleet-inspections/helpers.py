@@ -1,15 +1,15 @@
-from flask import redirect, render_template, session, flash
+from flask import redirect, render_template, session, flash, g
 from functools import wraps
 
 
-def feedback(message, page, dict="", var="", type='error', code=400, **kwargs):
+def feedback(message, page, dict="", var="", code=400, **kwargs):
     """Render message as an apology to user."""
     #par = "var=dict"
     dict_to_pass = {var:dict}
     for key in kwargs:
         dict_to_pass[key] = kwargs[key]
     #print(dict_to_pass)
-    flash(message, type)
+    flash(message, 'error')
     return render_template(page, **dict_to_pass), code
     '''
     def escape(s):
@@ -33,7 +33,7 @@ def login_required(f):
     """
     @wraps(f)
     def decorated_function(*args, **kwargs):
-        if session.get("user_id") is None:
+        if g.user is None:
             return redirect("/login")
         return f(*args, **kwargs)
     return decorated_function
@@ -46,7 +46,7 @@ def permissions_required(f):
     """
     @wraps(f)
     def decorated_function(*args, **kwargs):
-        if session.get("user_id") is None or session.get("role") is None or session.get("role") not in ["owner", "admin"]:
+        if g.user is None or g.user["role"] is None or g.user["role"] not in ["owner", "admin"]:
             return redirect("/")
         return f(*args, **kwargs)
     return decorated_function

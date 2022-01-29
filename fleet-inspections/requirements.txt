@@ -1,8 +1,13 @@
 cachelib==0.6.0
 click==8.0.3
+dataclasses==0.8
 Flask==2.0.2
 Flask-Session==0.4.0
+importlib-metadata==4.8.3
 itsdangerous==2.0.1
 Jinja2==3.0.3
 MarkupSafe==2.0.1
+pkg-resources==0.0.0
+typing-extensions==4.0.1
 Werkzeug==2.0.2
+zipp==3.6.0

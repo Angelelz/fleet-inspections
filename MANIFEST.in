@@ -1,0 +1,4 @@
+include fleet-inspections/schema.sql
+graft fleet-inspections/static
+graft fleet-inspections/templates
+global-exclude *.pyc

@@ -1,62 +1,31 @@
 import datetime
 
-import sqlite3
-from flask import Flask, jsonify, flash, redirect, render_template, request, session
-from flask_session import Session
+from flask import (
+    Blueprint, flash, g, redirect, render_template, request, session, url_for, jsonify
+)
 from werkzeug.security import check_password_hash, generate_password_hash
+from .helpers import feedback, login_required, check_password, as_dict, permissions_required, check_inputs, best_fit, to_dict
+from .dictionaries import c1
 
-from helpers import feedback, login_required, check_password, as_dict, permissions_required, check_inputs, best_fit, to_dict
-from large_tables import ins, c1
-# Make this changeable?
+from .db import get_db
+
 MAX_INSPECTIONS = 8
 
-# Configure application
-app = Flask(__name__)
+bp = Blueprint('views', __name__,)
 
-# Ensure templates are auto-reloaded
-app.config["TEMPLATES_AUTO_RELOAD"] = True
+@bp.before_app_request
+def load_logged_in_user():
+    user_id = session.get('user_id')
 
-# Custom filter
-app.jinja_env.filters["len"] = len
-
-# Configure session to use filesystem (instead of signed cookies)
-app.config["SESSION_PERMANENT"] = False
-app.config["SESSION_TYPE"] = "filesystem"
-app.config["SESSION_COOKIE_SAMESITE"] = 'Lax'
-Session(app)
-
-# Database Name
-db_path = "./fleets.db"
-db = sqlite3.connect(db_path)
-db.execute('''CREATE TABLE IF NOT EXISTS companys
-               (id INTEGER PRIMARY KEY, name TEXT UNIQUE NOT NULL,
-               show_name TEXT, owner TEXT NOT NULL)''')
-db.execute('''CREATE TABLE IF NOT EXISTS users
-               (u_id INTEGER PRIMARY KEY, c_id INTEGER NOT NULL,
-               username TEXT NOT NULL, email TEXT NOT NULL,
-               hash TEXT NOT NULL, role TEXT NOT NULL, FOREIGN KEY (c_id)
-               REFERENCES companys (id) ON DELETE CASCADE ON UPDATE NO ACTION)''')
-db.execute('''CREATE TABLE IF NOT EXISTS vehicles
-               (v_id INTEGER PRIMARY KEY, c_id INTEGER NOT NULL,
-               make TEXT NOT NULL, model TEXT NOT NULL,
-               year TEXT NOT NULL, number TEXT NOT NULL, vin TEXT UNIQUE NOT NULL,
-               tag TEXT, FOREIGN KEY (c_id) REFERENCES companys (id) ON DELETE CASCADE
-               ON UPDATE NO ACTION)''')
-db.execute(ins)
-db.commit()
-db.close()
-
-
-@app.after_request
-def after_request(response):
-    """Ensure responses aren't cached"""
-    response.headers["Cache-Control"] = "no-cache, no-store, must-revalidate"
-    response.headers["Expires"] = 0
-    response.headers["Pragma"] = "no-cache"
-    return response
+    if user_id is None:
+        g.user = None
+    else:
+        g.user = get_db().execute(
+            'SELECT * FROM users WHERE u_id = ?', (user_id,)
+        ).fetchone()
 
 # Handle requests to the root
-@app.route("/")
+@bp.route("/")
 def index():
     """Handle requests to index"""
     # If user si not logged in, show an index page with some text
@@ -65,21 +34,19 @@ def index():
 
     # Get the user information from the DB
     users = []
-    db = sqlite3.connect(db_path)
-    db.row_factory = sqlite3.Row
+    db = get_db()
     user = as_dict(db.execute("SELECT * FROM users WHERE u_id = ? AND c_id = ?", [session.get("user_id"), session.get("c_id")]).fetchall())
 
     # If the user is admin or owner give them the user list and the vehicle list, otherwise just give them just the vehicles
     if user[0]["role"] in ["owner", "admin"]:
         users = as_dict(db.execute("SELECT * FROM users WHERE c_id = ?", [user[0]["c_id"]]).fetchall())
     vehicles = as_dict(db.execute("SELECT * FROM vehicles WHERE c_id = ? ORDER BY (number + 0)", [session["c_id"]]).fetchall())
-    db.close()
+    
 
     # Render index.html with the values from DB
     return render_template("index.html", user=user, users=users, vehicles=vehicles)
 
-
-@app.route("/register", methods=["GET", "POST"])
+@bp.route("/register", methods=["GET", "POST"])
 def register():
     """Register a new user"""
     # If request is a GET just show register.html
@@ -99,10 +66,9 @@ def register():
         company = request.form.get("company")
 
         # Get all the companies from DB
-        db = sqlite3.connect(db_path)
-        db.row_factory = sqlite3.Row
+        db = get_db()
         companys = as_dict(db.execute("SELECT * FROM companys WHERE name = ?", [company]).fetchall())
-        db.close()
+        #
 
         # If company name exists return apology
         if len(companys) > 0:
@@ -118,22 +84,20 @@ def register():
 
         # Insert company and user into database with current user as owner
         hashed_password = generate_password_hash(request.form.get("password"))
-        db = sqlite3.connect(db_path)
         try:
             with db:
                 cid = db.execute("INSERT INTO companys (name, owner) VALUES(?, ?)", (company, name)).lastrowid
                 db.execute("INSERT INTO users (c_id, username, email, hash, role) VALUES(?, ?, ?, ?, ?)",
                             (cid, name, email, hashed_password, "owner"))
-        except:
+        except db.IntegrityError:
             # If there was an error flash the user
-            db.close()
-            feedback('Database: Error registering Company/User, contact support', "register.html", to_dict(request.form), "r")
+            print(db.IntegrityError)
+            return feedback('Database: Error registering Company/User, contact support', "register.html", to_dict(request.form), "r")
         else:
             # Flask confirmation and redirect to login page
-            db.close()
-            feedback('Company/User registered', "login.html", type='message', code=200)
+            return feedback('Company/User registered', "login.html", type='message', code=200)
 
-@app.route("/login", methods=["GET", "POST"])
+@bp.route("/login", methods=["GET", "POST"])
 def login():
     """Log user in"""
 
@@ -149,18 +113,15 @@ def login():
             return feedback("Must provide " + checks[1].capitalize(), "login.html", to_dict(request.form), "l", code=403)
 
         # Get company from database
-        db = sqlite3.connect(db_path)
-        db.row_factory = sqlite3.Row
+        db = get_db()
         company = as_dict(db.execute("SELECT * FROM companys WHERE name = ?", [request.form.get("company")]).fetchall())
 
         # If company is not in db render an apology
         if len(company) != 1:
-            db.close()
             return feedback("Company not found", "login.html", to_dict(request.form), "l", code=403)
 
         # Get user from DB
         rows = as_dict(db.execute("SELECT * FROM users WHERE username = ? AND c_id = ?", [request.form.get("username"), company[0]["id"]]).fetchall())
-        db.close()
 
         # Ensure username exists and password is correct
         if len(rows) != 1 or not check_password_hash(rows[0]["hash"], request.form.get("password")):
@@ -172,13 +133,13 @@ def login():
         session["role"] = rows[0]["role"]
 
         # Redirect user to home page
-        return redirect("/")
+        return redirect(url_for("views.index"))
 
     # User reached route via GET (as by clicking a link or via redirect)
     else:
         return render_template("login.html")
 
-@app.route("/logout")
+@bp.route("/logout")
 def logout():
     """Log user out"""
 
@@ -186,9 +147,10 @@ def logout():
     session.clear()
 
     # Redirect user home
-    return feedback('You logged out', "index.html", type='message', code=200)
+    flash("You logged out")
+    return redirect(url_for('.index'))
 
-@app.route("/add-vehicle", methods=["GET", "POST"])
+@bp.route("/add-vehicle", methods=["GET", "POST"])
 @login_required
 def add_vehicle():
     """Adds a new vehicle to the company"""
@@ -220,33 +182,30 @@ def add_vehicle():
                     request.form.get("tag")]
 
         # Ensure Vehicle id is unique
-        db = sqlite3.connect(db_path)
+        db = get_db()
         v = db.execute("SELECT * FROM vehicles WHERE number = ? AND c_id = ?", [request.form.get("number"), session.get("c_id")]).fetchall()
         if len(v) > 0:
-            db.close()
             return feedback("A vehicle with that ID already exists in the company database", "add-vehicle.html", to_dict(request.form), "v")
 
         # Ensure VIN is unique
         v = db.execute("SELECT * FROM vehicles WHERE vin = ?", [request.form.get("vin")]).fetchall()
         if len(v) > 0:
-            db.close()
             return feedback("A vehicle with that VIN already exists in the company database", "add-vehicle.html", to_dict(request.form), "v")
 
         # Insert Vehicle into database
         try:
             with db:
                 db.execute("INSERT INTO vehicles (c_id, make, model, year, number, vin, tag) VALUES(?, ?, ?, ?, ?, ?, ?)", vehicle)
-        except:
+        except db.IntegrityError:
             # If there was an error flash the user
-            db.close()
+            print(db.IntegrityError)
             return feedback('Database: Error adding vehicle, contact support', "add-vehicle.html", to_dict(request.form), "v")
         else:
             # Redirect to home
-            db.close()
             flash("Vehicle added!")
-            return redirect("/")
+            return redirect(url_for(".index"))
 
-@app.route("/add-user", methods=["GET", "POST"])
+@bp.route("/add-user", methods=["GET", "POST"])
 @login_required
 @permissions_required
 def add_user():
@@ -282,28 +241,27 @@ def add_user():
                     request.form.get("role")]
 
         # Query DB for the same username or email in the company, if exists return an apology
-        db = sqlite3.connect(db_path)
+        db = get_db()
         v = db.execute("SELECT * FROM users WHERE (username = ? OR email = ?) AND c_id = ?",
                          [request.form.get("username"), request.form.get("email"), session.get("c_id")]).fetchall()
         if len(v) > 0:
-            db.close()
             return feedback("Username/Email already exists in the company database", "add-user.html", to_dict(request.form), "u")
 
         # Insert user into DB
         try:
             with db:
                 db.execute("INSERT INTO users (c_id, username, email, hash, role) VALUES(?, ?, ?, ?, ?)", user)
-        except:
+        except db.IntegrityError:
             # If there was an error flash the user
-            db.close()
+            print(db.IntegrityError)
             return feedback('Database: Error adding user, contact support', "add-user.html", to_dict(request.form), "u")
         else:
             # Redirect to home
-            db.close()
+            
             flash("User added!")
-            return redirect("/")
+            return redirect(url_for(".index"))
 
-@app.route("/inspection", methods=["GET", "POST"])
+@bp.route("/inspection", methods=["GET", "POST"])
 @login_required
 def inspection():
     """Creates an inspection"""
@@ -312,34 +270,32 @@ def inspection():
         # If vehicle is not in get request
         if not request.args.get("vehicle"):
             # Get all the company vehicles from DB
-            db = sqlite3.connect(db_path)
-            db.row_factory = sqlite3.Row
+            db = get_db()
             vehicles = as_dict(db.execute("SELECT * FROM vehicles WHERE c_id = ? ORDER BY number", [session.get("c_id")]).fetchall())
-            db.close()
+            
 
             # If only one vehicle just go to inspect that one, otherwise render template to select it
             if len(vehicles) == 1:
-                return redirect("/inspection?vehicle=" + str(vehicles[0]["number"]))
+                return redirect(url_for(".inspection") + "?vehicle=" + str(vehicles[0]["number"]))
             else:
                 return render_template("inspection.html", vehicles=vehicles)
 
         # If vechicle is in get request
         else:
             # Query DB for that vehicle
-            db = sqlite3.connect(db_path)
-            db.row_factory = sqlite3.Row
+            db = get_db()
             v = as_dict(db.execute("SELECT * FROM vehicles WHERE number = ? AND c_id = ?",
                                     [request.args.get("vehicle"), session.get("c_id")]).fetchall())
 
             # If no such vehicle redirect to inspection
             if len(v) != 1:
-                db.close()
+                
                 flash('Wrong parameter', 'error')
-                return redirect("/inspection")
+                return redirect(url_for(".inspection"))
 
             # Get next oil change from last inspection
             oil = db.execute("SELECT next_oil FROM inspections WHERE v_id = ? ORDER BY date DESC", [v[0]["v_id"]]).fetchone()
-            db.close()
+            
 
             # pass the info to render the inspection for that vehicle
             return render_template("inspection.html", inspection=c1, vehicle=request.args.get("vehicle"),
@@ -348,17 +304,16 @@ def inspection():
     # If request is post (Meaning: user sumbited an inspection)
     else:
         # Query DB for that vehicle
-        db = sqlite3.connect(db_path)
-        db.row_factory = sqlite3.Row
+        db = get_db()
         v = as_dict(db.execute("SELECT * FROM vehicles WHERE v_id = ? AND c_id = ?",
                                 [request.form.get("v"), session.get("c_id")]).fetchall())
         oil = db.execute("SELECT next_oil FROM inspections WHERE v_id = ? ORDER BY date DESC", [v[0]["v_id"]]).fetchone()
-        db.close()
+        
 
         # Check that the important inputs have data, if not, render an apology
         checks = check_inputs(request.form, ["v", "miles", "maintenance", "date"], False)
         if checks[0]:
-            return feedback("Must provide " + checks[1].capitalize(), "inspection.html", to_dict(request.form), "i", 'error', 400, 
+            return feedback("Must provide " + checks[1].capitalize(), "inspection.html", to_dict(request.form), "i", 400, 
                                 inspection=c1, vehicle=v[0]["number"], v=v[0], oil=request.form.get("maintenance"), 
                                 date=datetime.date.today().strftime('%Y-%m-%d'))
 
@@ -366,7 +321,7 @@ def inspection():
         for c in c1:
             check = check_inputs(request.form, [c[0]], False)
             if check[0]:
-                return feedback("Must provide value for: " + c[3].capitalize(), "inspection.html", to_dict(request.form), "i", 'error', 400, 
+                return feedback("Must provide value for: " + c[3].capitalize(), "inspection.html", to_dict(request.form), "i", 400, 
                                 inspection=c1, vehicle=v[0]["number"], v=v[0], oil=request.form.get("maintenance"),
                                 date=datetime.date.today().strftime('%Y-%m-%d'))
 
@@ -401,23 +356,23 @@ def inspection():
         query += ") VALUES " + values + ")"
 
         # Submit the quiery to the database
-        db = sqlite3.connect(db_path)
+        db = get_db()
         try:
             with db:
                 db.execute(query, vars)
-        except:
+        except db.IntegrityError:
             # If there was an error flash the user
-            db.close()
-            return feedback('Database: Error adding inspection, contact support', "inspection.html", to_dict(request.form), "i", 'error', 400, 
+            print(db.IntegrityError)
+            return feedback('Database: Error adding inspection, contact support', "inspection.html", to_dict(request.form), "i", 400, 
                                 inspection=c1, vehicle=v[0]["number"], v=v[0], oil=request.form.get("maintenance"),
                                 date=datetime.date.today().strftime('%Y-%m-%d'))
         else:
             # Confirm to the user and redirect to home
-            db.close()
+            
             flash("Inspection added!")
-            return redirect("/")
+            return redirect(url_for(".index"))
 
-@app.route("/password", methods=["GET", "POST"])
+@bp.route("/password", methods=["GET", "POST"])
 @login_required
 def password():
     """Change Password"""
@@ -428,10 +383,9 @@ def password():
     # If request is post (Meaning: user sumbited a password change)
     else:
         # query DB for user
-        db = sqlite3.connect(db_path)
-        db.row_factory = sqlite3.Row
+        db = get_db()
         user = as_dict(db.execute("SELECT * FROM users WHERE u_id = ?", [session.get("user_id")]).fetchall())
-        db.close()
+        
 
         # Check that all inputs have data, if not, render an apology
         checks = check_inputs(request.form)
@@ -452,22 +406,22 @@ def password():
 
         # Update database with new password
         hashed_password = generate_password_hash(request.form.get("password"))
-        db = sqlite3.connect(db_path)
+        db = get_db()
         try:
             with db:
                 db.execute("UPDATE users SET hash = ? WHERE u_id = ?", [hashed_password, session.get("user_id")])
-        except:
+        except db.IntegrityError:
             # If there was an error flash the user
-            db.close()
+            print(db.IntegrityError)
             return feedback('Database: Error changing password, contact support', "password.html")
         else:
             # Flask confirmation and redirect to home
-            db.close()
+            
             flash("Password changed!")
-            return redirect("/")
+            return redirect(url_for(".index"))
 
 
-@app.route("/edit-vehicle", methods=["GET", "POST"])
+@bp.route("/edit-vehicle", methods=["GET", "POST"])
 @login_required
 def edit_vehicle():
     """Edit a Vehicle already in the database"""
@@ -476,28 +430,26 @@ def edit_vehicle():
         # If vehicle is not in get request
         if not request.args.get("vehicle"):
             # Get all the company vehicles from DB
-            db = sqlite3.connect(db_path)
-            db.row_factory = sqlite3.Row
+            db = get_db()
             vehicles = as_dict(db.execute("SELECT * FROM vehicles WHERE c_id = ? ORDER BY (number + 0)", [session.get("c_id")]).fetchall())
-            db.close()
+            
             # If only one vehicle just go to edit that one, otherwise render template to select it
             if len(vehicles) == 1:
-                return redirect("edit-vehicle?vehicle=" + str(vehicles[0]["number"]))
+                return redirect(url_for(".edit-vehicle") + "?vehicle=" + str(vehicles[0]["number"]))
             else:
                 return render_template("edit-vehicle.html", vehicles=vehicles)
 
         # If vechicle is in get request
         else:
             # Query DB for that vehicle
-            db = sqlite3.connect(db_path)
-            db.row_factory = sqlite3.Row
+            db = get_db()
             v = as_dict(db.execute("SELECT * FROM vehicles WHERE number = ? AND c_id = ?",
                                     [request.args.get("vehicle"), session.get("c_id")]).fetchall())
-            db.close()
+            
 
             # If no such vehicle redirect to edit-vehicle otherwise pass the info to render the edit template for that vehicle
             if len(v) == 0:
-                return redirect("/edit-vehicle")
+                return redirect(url_for(".edit-vehicle"))
             else:
                 return render_template("edit-vehicle.html", vehicle=request.args.get("vehicle"), v=v[0])
 
@@ -507,15 +459,15 @@ def edit_vehicle():
         checks = check_inputs(request.form, ["tag"])
         if checks[0]:
             return feedback("Must provide " + checks[1].capitalize(), "edit-vehicle.html", to_dict(request.form), "v",
-                                "error", 400, vehicle=request.form.get("v"))
+                                400, vehicle=request.form.get("v"))
 
         # Check if year is a 4digit number, if not, render an apology
         try:
             if int(request.form.get("year")) < 1900:
-                return feedback("Year must have 4 digits", "edit-vehicle.html", to_dict(request.form), "v", "error", 400,
+                return feedback("Year must have 4 digits", "edit-vehicle.html", to_dict(request.form), "v", 400,
                                     vehicle=request.form.get("v"))
         except:
-            return feedback("Year must be a 4 digits number", "edit-vehicle.html", to_dict(request.form), "v", "error",
+            return feedback("Year must be a 4 digits number", "edit-vehicle.html", to_dict(request.form), "v",
                                 400, vehicle=request.form.get("v"))
 
         # Create an array with the form data
@@ -526,34 +478,34 @@ def edit_vehicle():
                     request.form.get("tag") ]
 
         # Get the vehicle from database
-        db = sqlite3.connect(db_path)
+        db = get_db()
         v_id = db.execute("SELECT v_id FROM vehicles WHERE number = ? AND c_id = ?",
                             [request.form.get("v"), session.get("c_id")]).fetchone()
 
         # If no vehicle, return an apology
         if len(v_id) != 1:
-            db.close()
+            
             return feedback("something went wrong with that request", "edit-vehicle.html", to_dict(request.form),
-                                "v", "error", 400, vehicle=request.form.get("v"))
+                                "v", 400, vehicle=request.form.get("v"))
 
         # Add vehicle id to the vehicle array and update the vehicle with the new data
         vehicle.append(v_id[0])
         try:
             with db:
                 db.execute("UPDATE vehicles SET make = ?, model = ?, year = ?, number = ?, tag = ? WHERE v_id = ?", vehicle)
-        except:
+        except db.IntegrityError:
             # If the was an error flash the user
-            db.close()
+            print(db.IntegrityError)
             return feedback('Database: Error editing vehicle, contact support', "edit-vehicle.html",
-                                to_dict(request.form), "v", "error", 400, vehicle=request.form.get("v"))
+                                to_dict(request.form), "v", 400, vehicle=request.form.get("v"))
         else:
             # Flash the user the confimation and redirect to home
-            db.close()
+            
             flash('Database Updated!')
-            return redirect("/")
+            return redirect(url_for(".index"))
 
 
-@app.route("/edit-user", methods=["GET", "POST"])
+@bp.route("/edit-user", methods=["GET", "POST"])
 @permissions_required
 @login_required
 def edit_user():
@@ -563,25 +515,23 @@ def edit_user():
         # If user is not in get request
         if not request.args.get("user"):
             # Get all the company users from DB except for the owner
-            db = sqlite3.connect(db_path)
-            db.row_factory = sqlite3.Row
+            db = get_db()
             users = as_dict(db.execute('''SELECT * FROM users WHERE c_id = ? AND role != "owner"''', [session.get("c_id")]).fetchall())
-            db.close()
+            
             # If only one user just go to edit that one, otherwise render template to select it
             if len(users) == 1:
-                return redirect("/edit-user?user=" + str(users[0]["username"]))
+                return redirect(url_for(".edit_user") + "?user=" + str(users[0]["username"]))
             else:
                 return render_template("edit-user.html", users=users)
 
         # If user is in get request
         else:
             # Query DB for that user and the company
-            db = sqlite3.connect(db_path)
-            db.row_factory = sqlite3.Row
+            db = get_db()
             u = as_dict(db.execute("SELECT * FROM users WHERE username = ? AND c_id = ?", [request.args.get("user"), session.get("c_id")]).fetchall())
             c = as_dict(db.execute("SELECT * FROM companys WHERE id = ?", [session.get("c_id")]).fetchall())
             users = as_dict(db.execute('''SELECT * FROM users WHERE c_id = ? AND role != "owner"''', [session.get("c_id")]).fetchall())
-            db.close()
+            
 
             # If trying to edit owner return an apology
             if c[0]["owner"] == request.args.get("user"):
@@ -596,49 +546,48 @@ def edit_user():
     # If request is post (Meaning: user sumbited an edit)
     else:
         # Get the user and all other users from the DB
-        db = sqlite3.connect(db_path)
-        db.row_factory = sqlite3.Row
+        db = get_db()
         u = as_dict(db.execute("SELECT * FROM users WHERE u_id = ?", [request.form.get("u")]).fetchall())
         others = as_dict(db.execute("SELECT * FROM users WHERE u_id != ? AND c_id = ?",
                             [request.form.get("u"), session.get("c_id")]).fetchall())
-        db.close()
+        
 
         # Check that all the inputs have data, if not, render an apology
         checks = check_inputs(request.form)
         if checks[0]:
             return feedback("Must provide " + checks[1].capitalize(), "edit-user.html", u[0], 'u',
-                                'error', 400, user=u[0]["username"])
+                                400, user=u[0]["username"])
 
         # If user is not in DB return an apology
         if len(u) != 1:
             return feedback("Something went wrong with that request", "edit-user.html", to_dict(request.form), 'u',
-                                'error', 400, user=request.form.get("u"))
+                                400, user=request.form.get("u"))
 
         # If trying to submit a user/email that already exists return an apology
         for other in others:
             if u[0]["username"] == other["username"] or u[0]["email"] == other["email"]:
                 return feedback("Username/email already in company database", "edit-user.html", to_dict(request.form), 'u',
-                                    'error', 400, user=request.form.get("u"))
+                                    400, user=request.form.get("u"))
 
         # If trying to edit the role of the owner return an apology
         if u[0]["role"] == "owner" and request.form.get("role") != "owner":
             return feedback("Can't change role of the owner", "edit-user.html", to_dict(request.form), 'u',
-                                'error', 400, user=request.form.get("u"))
+                                400, user=request.form.get("u"))
 
         # If trying to sumbit a role not supported return an apology
         if request.form.get("role") not in ["admin", "user"]:
             return feedback("Wrong role", "edit-user.html", to_dict(request.form), 'u',
-                                'error', 400, user=request.form.get("u"))
+                                400, user=request.form.get("u"))
 
         # If password doesn't meet requierements return apology
         if check_password(request.form.get("password")):
             return feedback("Password does not meet requirements", "edit-user.html", to_dict(request.form), 'u',
-                                'error', 400, user=request.form.get("u"))
+                                400, user=request.form.get("u"))
 
         # If password and confirmation don't match return apology
         if request.form.get("password") != request.form.get("confirmation"):
             return feedback("Password doesn't match confirmation", "edit-user.html", to_dict(request.form), 'u',
-                                'error', 400, user=request.form.get("u"))
+                                400, user=request.form.get("u"))
 
         # Set the data into an array
         user = [ request.form.get("username"),
@@ -648,23 +597,23 @@ def edit_user():
                     request.form.get("u")]
 
         # Insert user into DB
-        db = sqlite3.connect(db_path)
+        db = get_db()
         try:
             with db:
                 db.execute("UPDATE users SET username = ?, email = ?, hash = ?, role = ? WHERE u_id = ?", user)
-        except:
+        except db.IntegrityError:
             # If there was an error flash the user
-            db.close()
+            print(db.IntegrityError)
             return feedback('Database: Error editing user, contact support', "edit-user.html", to_dict(request.form), 'u',
-                                'error', 400, user=request.form.get("u"))
+                                400, user=request.form.get("u"))
         else:
             # Redirect to home
-            db.close()
+            
             flash('Database Updated!')
-            return redirect("/")
+            return redirect(url_for(".index"))
 
 
-@app.route("/vehicles", methods=["GET", "POST"])
+@bp.route("/vehicles", methods=["GET", "POST"])
 @permissions_required
 @login_required
 def vehicles():
@@ -673,16 +622,15 @@ def vehicles():
     def get_inspections(request_arg):
         """Get inspections from database"""
         # Get the vehicle from DB
-        db = sqlite3.connect(db_path)
-        db.row_factory = sqlite3.Row
+        db = get_db()
         vehicle = as_dict(db.execute("SELECT * FROM vehicles WHERE c_id = ? AND number = ?",
                                 [session.get("c_id"), request_arg.get("vehicle")]).fetchall())
 
         # If vehicle submited not in database redirect to vehicles
         if len(vehicle) != 1:
-            db.close()
+            
             flash("Select a vehicle from the list", 'error')
-            return redirect("/vehicles")
+            return redirect(url_for("views.vehicles"))
 
         # Get all the vehicles from DB
         v = as_dict(db.execute("SELECT * FROM vehicles WHERE c_id = ? ORDER BY (number + 0)",
@@ -692,7 +640,7 @@ def vehicles():
         inspections = as_dict(db.execute('''SELECT * FROM inspections, users WHERE inspections.c_id = ? AND inspections.v_id = ?
                                             AND inspections.u_id = users.u_id ORDER BY inspections.date DESC LIMIT ?''',
                                             [session.get("c_id"), vehicle[0]["v_id"], MAX_INSPECTIONS]).fetchall())
-        db.close()
+        
 
         # Create an array called inspection with this structure:
         # [Issue description, Issue name, Date, User (that made the inspection)] for every issue and inspection
@@ -728,11 +676,10 @@ def vehicles():
         # If vehicle is not in get request
         if not request.args.get("vehicle"):
             # Get all the company vehicles and inspections from DB
-            db = sqlite3.connect(db_path)
-            db.row_factory = sqlite3.Row
+            db = get_db()
             vehicles = as_dict(db.execute("SELECT * FROM vehicles WHERE c_id = ? ORDER BY (number + 0)", [session.get("c_id")]).fetchall())
             inspections = as_dict(db.execute("SELECT * FROM inspections WHERE c_id = ? ORDER BY date DESC", [session.get("c_id")]).fetchall())
-            db.close()
+            
 
             # Fancy way of creating a dictionary with the vehicles as keys and a list of inspections as values
             v = {ve["number"]:[[i["next_oil"], i["miles"], i["date"]] for i in inspections if i["v_id"] == ve["v_id"]] for ve in vehicles}
@@ -784,11 +731,10 @@ def vehicles():
     else:
 
         # Get all the vehicles and inspections of the company
-        db = sqlite3.connect(db_path)
-        db.row_factory = sqlite3.Row
+        db = get_db()
         inspections = as_dict(db.execute("SELECT v_id, date, miles, next_oil FROM inspections WHERE c_id = ? ORDER BY date DESC", [session.get("c_id")]).fetchall())
         vehicles = as_dict(db.execute("SELECT * FROM vehicles WHERE c_id = ? ORDER BY number", [session.get("c_id")]).fetchall())
-        db.close()
+        
 
         # Create the data for the graphs for all vehicles including projections
         graph_data = []
