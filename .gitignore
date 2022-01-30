@@ -1,6 +1,7 @@
 flask_session/
 /venv/
 /.vscode/
+<<<<<<< HEAD
 *.pyc
 __pycache__/
 
