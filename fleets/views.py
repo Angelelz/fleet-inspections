@@ -4,10 +4,10 @@ from flask import (
     Blueprint, flash, g, redirect, render_template, request, session, url_for, jsonify
 )
 from werkzeug.security import check_password_hash, generate_password_hash
-from .helpers import feedback, login_required, check_password, as_dict, permissions_required, check_inputs, best_fit, to_dict
-from .dictionaries import c1
+from fleets.helpers import feedback, login_required, check_password, as_dict, permissions_required, check_inputs, best_fit, to_dict
+from fleets.dictionaries import c1
 
-from .db import get_db
+from fleets.db import get_db
 
 MAX_INSPECTIONS = 8
 
