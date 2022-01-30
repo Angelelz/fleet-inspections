@@ -58,7 +58,7 @@ def register():
         # Check that all inputs have data, if not, render an apology
         checks = check_inputs(request.form)
         if checks[0]:
-            return feedback(checks[1].capitalize() + " field can't be empty", "register.html", to_dict(request.form), "r")
+            return feedback(checks[1].capitalize() + " field cannot be empty", "register.html", to_dict(request.form), "r")
 
         # Set the form data to variables
         name = request.form.get("username")
@@ -95,7 +95,8 @@ def register():
             return feedback('Database: Error registering Company/User, contact support', "register.html", to_dict(request.form), "r")
         else:
             # Flask confirmation and redirect to login page
-            return feedback('Company/User registered', "login.html", type='message', code=200)
+            flash('Company/User registered')
+            return redirect(url_for(".index"))
 
 @bp.route("/login", methods=["GET", "POST"])
 def login():
@@ -125,7 +126,7 @@ def login():
 
         # Ensure username exists and password is correct
         if len(rows) != 1 or not check_password_hash(rows[0]["hash"], request.form.get("password")):
-            return feedback("invalid username and/or password", "login.html", to_dict(request.form), "l", code=403)
+            return feedback("Invalid username and/or password", "login.html", to_dict(request.form), "l", code=403)
 
         # Remember which user has logged in along with company and role
         session["user_id"] = rows[0]["u_id"]
@@ -227,7 +228,7 @@ def add_user():
 
         # If password and confirmation don't match return apology
         if request.form.get("password") != request.form.get("confirmation"):
-            return feedback("passwords don't match", "add-user.html", to_dict(request.form), "u")
+            return feedback("Passwords don't match", "add-user.html", to_dict(request.form), "u")
 
         # If role is not admin or user render an apology (Can only have 1 owner)
         if request.form.get("role") not in ["admin", "user"]:
@@ -449,7 +450,7 @@ def edit_vehicle():
 
             # If no such vehicle redirect to edit-vehicle otherwise pass the info to render the edit template for that vehicle
             if len(v) == 0:
-                return redirect(url_for(".edit-vehicle"))
+                return redirect('/edit-vehicle')
             else:
                 return render_template("edit-vehicle.html", vehicle=request.args.get("vehicle"), v=v[0])
 
@@ -459,16 +460,16 @@ def edit_vehicle():
         checks = check_inputs(request.form, ["tag"])
         if checks[0]:
             return feedback("Must provide " + checks[1].capitalize(), "edit-vehicle.html", to_dict(request.form), "v",
-                                400, vehicle=request.form.get("v"))
+                                400, vehicle=request.form.get("vehicle"))
 
         # Check if year is a 4digit number, if not, render an apology
         try:
             if int(request.form.get("year")) < 1900:
                 return feedback("Year must have 4 digits", "edit-vehicle.html", to_dict(request.form), "v", 400,
-                                    vehicle=request.form.get("v"))
+                                    vehicle=request.form.get("vehicle"))
         except:
             return feedback("Year must be a 4 digits number", "edit-vehicle.html", to_dict(request.form), "v",
-                                400, vehicle=request.form.get("v"))
+                                400, vehicle=request.form.get("vehicle"))
 
         # Create an array with the form data
         vehicle = [ request.form.get("make"),
@@ -480,13 +481,22 @@ def edit_vehicle():
         # Get the vehicle from database
         db = get_db()
         v_id = db.execute("SELECT v_id FROM vehicles WHERE number = ? AND c_id = ?",
-                            [request.form.get("v"), session.get("c_id")]).fetchone()
+                            [request.form.get("vehicle"), session.get("c_id")]).fetchone()
 
         # If no vehicle, return an apology
-        if len(v_id) != 1:
-            
-            return feedback("something went wrong with that request", "edit-vehicle.html", to_dict(request.form),
-                                "v", 400, vehicle=request.form.get("v"))
+        if not v_id:
+            return feedback("Something went wrong with that request", "edit-vehicle.html", to_dict(request.form),
+                                "v", 400, vehicle=request.form.get("vehicle"))
+
+        # Ensure Vehicle id is unique
+        v = db.execute("SELECT * FROM vehicles WHERE number = ? AND c_id = ?", [request.form.get("number"), session.get("c_id")]).fetchall()
+        if len(v) > 0:
+            return feedback("A vehicle with that ID already exists in the company database", "edit-vehicle.html", to_dict(request.form), "v")
+
+        # Ensure VIN is unique
+        v = db.execute("SELECT * FROM vehicles WHERE vin = ?", [request.form.get("vin")]).fetchall()
+        if len(v) > 0:
+            return feedback("A vehicle with that VIN already exists in the company database", "add-vehicle.html", to_dict(request.form), "v")
 
         # Add vehicle id to the vehicle array and update the vehicle with the new data
         vehicle.append(v_id[0])
@@ -497,7 +507,7 @@ def edit_vehicle():
             # If the was an error flash the user
             print(db.IntegrityError)
             return feedback('Database: Error editing vehicle, contact support', "edit-vehicle.html",
-                                to_dict(request.form), "v", 400, vehicle=request.form.get("v"))
+                                to_dict(request.form), "v", 400, vehicle=request.form.get("vehicle"))
         else:
             # Flash the user the confimation and redirect to home
             
@@ -565,10 +575,10 @@ def edit_user():
 
         # If trying to submit a user/email that already exists return an apology
         for other in others:
-            if u[0]["username"] == other["username"] or u[0]["email"] == other["email"]:
+            if request.form.get("username") == other["username"] or request.form.get("email") == other["email"]:
                 return feedback("Username/email already in company database", "edit-user.html", to_dict(request.form), 'u',
                                     400, user=request.form.get("u"))
-
+        
         # If trying to edit the role of the owner return an apology
         if u[0]["role"] == "owner" and request.form.get("role") != "owner":
             return feedback("Can't change role of the owner", "edit-user.html", to_dict(request.form), 'u',
