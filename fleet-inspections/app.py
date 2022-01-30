@@ -5,8 +5,8 @@ from flask import Flask, jsonify, flash, redirect, render_template, request, ses
 from flask_session import Session
 from werkzeug.security import check_password_hash, generate_password_hash
 
-from helpers import feedback, login_required, check_password, as_dict, permissions_required, check_inputs, best_fit, to_dict
-from large_tables import ins, c1
+from .helpers import feedback, login_required, check_password, as_dict, permissions_required, check_inputs, best_fit, to_dict
+from .large_tables import ins, c1
 # Make this changeable?
 MAX_INSPECTIONS = 8
 

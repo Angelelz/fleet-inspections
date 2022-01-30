@@ -2,3 +2,9 @@ fleet-inspections/flask_session/
 fleet-inspections/__pycache__/
 /venv/
 /.vscode/
+flask_session/
+/fleets/
+*.egg-info/
+/instance
+/tests
+.pytest_cache
