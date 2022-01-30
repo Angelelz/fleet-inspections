@@ -7,15 +7,19 @@ def test_vehicles_user(client, auth):
         assert client.get('/add-vehicle').status_code == 200
         assert client.get('/edit-vehicle').status_code == 200
         assert client.get('/vehicles').status_code == 302
+        assert client.get('/vehicles?vehicle=1').status_code == 302
+        assert client.get('/vehicles?vehicle=232').status_code == 302
 
-def test_add_edit_vehicle_admin(client, auth):
+def test_vehicles_admin(client, auth):
     auth.login_admin()
     with client:
         assert client.get('/add-vehicle').status_code == 200
         assert client.get('/edit-vehicle').status_code == 200
         assert client.get('/vehicles').status_code == 200
+        assert client.get('/vehicles?vehicle=1').status_code == 200
+        assert client.get('/vehicles?vehicle=232').status_code == 302
 
-def test_add_edit_vehicle_owner(client, auth):
+def test_vehicles_owner(client, auth):
     auth.login_owner()
     with client:
         assert client.get('/add-vehicle').status_code == 200

@@ -307,12 +307,16 @@ def inspection():
         # Query DB for that vehicle
         db = get_db()
         v = as_dict(db.execute("SELECT * FROM vehicles WHERE v_id = ? AND c_id = ?",
-                                [request.form.get("v"), session.get("c_id")]).fetchall())
-        oil = db.execute("SELECT next_oil FROM inspections WHERE v_id = ? ORDER BY date DESC", [v[0]["v_id"]]).fetchone()
+                                [request.form.get("vehicle"), session.get("c_id")]).fetchall())
+        if v:
+            oil = db.execute("SELECT next_oil FROM inspections WHERE v_id = ? ORDER BY date DESC", [v[0]["v_id"]]).fetchone()
+        else:
+            flash('Something went wrong with that request')
+            return redirect(url_for('.inspection'))
         
 
         # Check that the important inputs have data, if not, render an apology
-        checks = check_inputs(request.form, ["v", "miles", "maintenance", "date"], False)
+        checks = check_inputs(request.form, ["vehicle", "miles", "maintenance", "date"], False)
         if checks[0]:
             return feedback("Must provide " + checks[1].capitalize(), "inspection.html", to_dict(request.form), "i", 400, 
                                 inspection=c1, vehicle=v[0]["number"], v=v[0], oil=request.form.get("maintenance"), 
@@ -335,7 +339,7 @@ def inspection():
 
         # vars will be an array with al the variables to insert
         vars = [session.get("c_id"), session.get("user_id"),
-                request.form.get("v"), request.form.get("miles"),
+                request.form.get("vehicle"), request.form.get("miles"),
                 request.form.get("maintenance"), request.form.get("date")]
 
         # iterate over c1 to get whatever the user submited
