@@ -36,11 +36,15 @@ def index():
     users = []
     db = get_db()
     user = as_dict(db.execute("SELECT * FROM users WHERE u_id = ? AND c_id = ?", [session.get("user_id"), session.get("c_id")]).fetchall())
+    vehicles = []
 
     # If the user is admin or owner give them the user list and the vehicle list, otherwise just give them just the vehicles
-    if user[0]["role"] in ["owner", "admin"]:
-        users = as_dict(db.execute("SELECT * FROM users WHERE c_id = ?", [user[0]["c_id"]]).fetchall())
-    vehicles = as_dict(db.execute("SELECT * FROM vehicles WHERE c_id = ? ORDER BY (number + 0)", [session["c_id"]]).fetchall())
+    if user:
+        if user[0]["role"] in ["owner", "admin"]:
+            users = as_dict(db.execute("SELECT * FROM users WHERE c_id = ?", [user[0]["c_id"]]).fetchall())
+        vehicles = as_dict(db.execute("SELECT * FROM vehicles WHERE c_id = ? ORDER BY (number + 0)", [session["c_id"]]).fetchall())
+    else:
+        return redirect(url_for('.logout'))
     
 
     # Render index.html with the values from DB
